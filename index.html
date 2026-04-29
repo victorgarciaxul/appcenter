@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XUL · Centro de Aplicaciones</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+
+/* ===== Reset ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+a { text-decoration: none; color: inherit; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+/* ===== Design Tokens ===== */
+:root {
+  --xul-purple:    #5B2A86;
+  --xul-purple-2:  #7A3FAF;
+  --xul-purple-3:  #9B5FD0;
+  --xul-red:       #D42E2E;
+  --xul-red-2:     #E8473D;
+
+  --bg:            #0A0A0B;
+  --bg-1:          #111113;
+  --bg-2:          #161619;
+  --bg-3:          #1D1D21;
+  --surface:       #141418;
+  --surface-hover: #1A1A20;
+
+  --fg:            #EDEDEE;
+  --fg-muted:      #A1A1A8;
+  --fg-subtle:     #6C6C74;
+
+  --border:        #222228;
+  --border-strong: #2E2E36;
+
+  --accent:        var(--xul-purple-2);
+  --accent-soft:   rgba(122, 63, 175, 0.14);
+  --accent-ring:   rgba(122, 63, 175, 0.35);
+
+  --success:       #3BB97A;
+  --warn:          #E8B84A;
+  --danger:        var(--xul-red-2);
+  --info:          #6AA6F1;
+
+  --radius:        10px;
+  --radius-sm:     6px;
+  --radius-lg:     14px;
+  --radius-xl:     20px;
+
+  --shadow:        0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg:     0 20px 40px -12px rgba(0,0,0,0.6), 0 8px 16px -8px rgba(0,0,0,0.4);
+  --shadow-card:   0 2px 8px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.2);
+
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body.light {
+  --bg:            #F4F4F7;
+  --bg-1:          #FFFFFF;
+  --bg-2:          #F0F0F4;
+  --bg-3:          #E8E8EE;
+  --surface:       #FFFFFF;
+  --surface-hover: #F7F7FA;
+  --fg:            #14141A;
+  --fg-muted:      #58585F;
+  --fg-subtle:     #8A8A92;
+  --border:        #E2E2EA;
+  --border-strong: #D0D0DA;
+  --shadow:        0 2px 8px rgba(0,0,0,0.08);
+  --shadow-lg:     0 12px 32px -8px rgba(0,0,0,0.12);
+  --shadow-card:   0 1px 4px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+  min-height: 100vh;
+  transition: background 0.2s, color 0.2s;
+}
+
+/* ===== Layout ===== */
+.page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 32px 80px;
+}
+
+/* ===== Header ===== */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.header-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 32px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.header-logo img {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+}
+
+.logo-text {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--xul-purple-3), var(--xul-purple-2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.header-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-muted);
+}
+
+.header-spacer { flex: 1; }
+
+.header-search {
+  position: relative;
+  width: 260px;
+}
+
+.header-search input {
+  width: 100%;
+  height: 36px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 12px 0 36px;
+  font-size: 13px;
+  color: var(--fg);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.header-search input::placeholder { color: var(--fg-subtle); }
+
+.header-search input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--fg-subtle);
+  pointer-events: none;
+}
+
+.btn-theme {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--fg-muted);
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+
+.btn-theme:hover { background: var(--surface-hover); color: var(--fg); }
+
+/* ===== Hero ===== */
+.hero {
+  padding: 56px 0 40px;
+}
+
+.hero h1 {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin-bottom: 10px;
+}
+
+.hero h1 span {
+  background: linear-gradient(135deg, var(--xul-purple-3) 0%, var(--xul-red-2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero p {
+  font-size: 15px;
+  color: var(--fg-muted);
+  max-width: 500px;
+}
+
+/* ===== Stats ===== */
+.stats {
+  display: flex;
+  gap: 12px;
+  margin: 32px 0 36px;
+  flex-wrap: wrap;
+}
+
+.stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.stat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.stat-dot.purple { background: var(--xul-purple-2); }
+.stat-dot.green  { background: var(--success); }
+.stat-dot.yellow { background: var(--warn); }
+.stat-dot.red    { background: var(--danger); }
+
+.stat-num {
+  font-weight: 700;
+  color: var(--fg);
+}
+.stat-label { color: var(--fg-muted); }
+
+/* ===== Filters ===== */
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: all 0.12s;
+  cursor: pointer;
+}
+
+.filter-btn:hover { background: var(--surface-hover); color: var(--fg); }
+
+.filter-btn.active {
+  background: var(--accent-soft);
+  border-color: var(--accent-ring);
+  color: var(--fg);
+}
+
+.filters-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+/* ===== Grid ===== */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+/* ===== App Card ===== */
+.app-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+  cursor: default;
+}
+
+.app-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-strong);
+}
+
+.app-card.featured {
+  border-color: rgba(122, 63, 175, 0.3);
+}
+
+.app-card.featured:hover {
+  border-color: var(--accent-ring);
+}
+
+/* Card top banner */
+.card-banner {
+  height: 96px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.card-banner-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0.9;
+}
+
+.card-banner-noise {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+
+.card-icon-wrap {
+  position: absolute;
+  bottom: -20px;
+  left: 24px;
+  width: 48px;
+  height: 48px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: var(--shadow);
+}
+
+.card-status-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.card-status-badge.activo {
+  background: rgba(59, 185, 122, 0.18);
+  color: var(--success);
+  border: 1px solid rgba(59, 185, 122, 0.25);
+}
+.card-status-badge.activo .badge-dot { background: var(--success); }
+
+.card-status-badge.dev {
+  background: rgba(232, 184, 74, 0.15);
+  color: var(--warn);
+  border: 1px solid rgba(232, 184, 74, 0.25);
+}
+.card-status-badge.dev .badge-dot { background: var(--warn); }
+
+.card-status-badge.beta {
+  background: rgba(106, 166, 241, 0.15);
+  color: var(--info);
+  border: 1px solid rgba(106, 166, 241, 0.25);
+}
+.card-status-badge.beta .badge-dot { background: var(--info); }
+
+.card-status-badge.paused {
+  background: rgba(108, 108, 116, 0.15);
+  color: var(--fg-subtle);
+  border: 1px solid rgba(108, 108, 116, 0.2);
+}
+.card-status-badge.paused .badge-dot { background: var(--fg-subtle); }
+
+/* Card body */
+.card-body {
+  padding: 36px 24px 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card-name {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.card-desc {
+  font-size: 13px;
+  color: var(--fg-muted);
+  line-height: 1.55;
+  flex: 1;
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.card-tag {
+  height: 22px;
+  padding: 0 8px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--fg-subtle);
+  display: flex;
+  align-items: center;
+}
+
+/* Card footer */
+.card-footer {
+  padding: 16px 24px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.card-meta {
+  font-size: 11px;
+  color: var(--fg-subtle);
+}
+
+.btn-launch {
+  height: 34px;
+  padding: 0 16px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-ring);
+  border-radius: var(--radius-sm);
+  color: var(--xul-purple-3);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.12s;
+  text-decoration: none;
+}
+
+.btn-launch:hover {
+  background: var(--xul-purple-2);
+  border-color: var(--xul-purple-2);
+  color: #fff;
+}
+
+.btn-launch svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+.btn-launch.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* ===== Empty state ===== */
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--fg-muted);
+}
+
+.empty-state svg { margin-bottom: 16px; color: var(--fg-subtle); }
+.empty-state h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.empty-state p { font-size: 13px; color: var(--fg-subtle); }
+
+/* ===== Section label ===== */
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-subtle);
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 680px) {
+  .page, .header-inner { padding-left: 16px; padding-right: 16px; }
+  .hero h1 { font-size: 26px; }
+  .header-search { width: 180px; }
+  .grid { grid-template-columns: 1fr; }
+  .stats { gap: 8px; }
+}
+
+/* ===== Gradient presets ===== */
+.grad-purple { background: linear-gradient(135deg, #3A1060 0%, #6B32A0 100%); }
+.grad-red    { background: linear-gradient(135deg, #7A1A1A 0%, #C03030 100%); }
+.grad-teal   { background: linear-gradient(135deg, #0D4D4D 0%, #1A8080 100%); }
+.grad-blue   { background: linear-gradient(135deg, #0F2A5A 0%, #1E50A0 100%); }
+.grad-green  { background: linear-gradient(135deg, #0D4028 0%, #1A8050 100%); }
+.grad-orange { background: linear-gradient(135deg, #5A2A0A 0%, #B05010 100%); }
+.grad-pink   { background: linear-gradient(135deg, #5A0A3A 0%, #A01878 100%); }
+
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <div class="header-logo">
+      <img src="../auditoria/logo-xul.png" alt="XUL" onerror="this.style.display='none'" />
+      <span class="logo-text">XUL</span>
+    </div>
+    <div class="header-divider"></div>
+    <span class="header-title">Centro de Aplicaciones</span>
+    <div class="header-spacer"></div>
+    <div class="header-search">
+      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" id="search-input" placeholder="Buscar aplicación…" oninput="filterApps()" />
+    </div>
+    <button class="btn-theme" id="theme-btn" onclick="toggleTheme()" title="Cambiar tema">
+      <svg id="theme-icon-dark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg id="theme-icon-light" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="page">
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>Aplicaciones <span>internas</span><br>de la agencia</h1>
+    <p>Acceso centralizado a todas las herramientas desarrolladas por XUL para la gestión y operación del equipo.</p>
+  </section>
+
+  <!-- Stats -->
+  <div class="stats" id="stats-bar">
+    <div class="stat-pill">
+      <span class="stat-dot purple"></span>
+      <span class="stat-num" id="stat-total">8</span>
+      <span class="stat-label">aplicaciones</span>
+    </div>
+    <div class="stat-pill">
+      <span class="stat-dot green"></span>
+      <span class="stat-num" id="stat-active">3</span>
+      <span class="stat-label">activas</span>
+    </div>
+    <div class="stat-pill">
+      <span class="stat-dot yellow"></span>
+      <span class="stat-num" id="stat-dev">3</span>
+      <span class="stat-label">en desarrollo</span>
+    </div>
+    <div class="stat-pill">
+      <span class="stat-dot red"></span>
+      <span class="stat-num" id="stat-beta">2</span>
+      <span class="stat-label">en beta</span>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters" id="filters">
+    <button class="filter-btn active" data-cat="all" onclick="setFilter('all', this)">Todas</button>
+    <button class="filter-btn" data-cat="gestion" onclick="setFilter('gestion', this)">Gestión</button>
+    <button class="filter-btn" data-cat="crm" onclick="setFilter('crm', this)">CRM</button>
+    <button class="filter-btn" data-cat="analisis" onclick="setFilter('analisis', this)">Análisis</button>
+    <button class="filter-btn" data-cat="campanas" onclick="setFilter('campanas', this)">Campañas</button>
+    <button class="filter-btn" data-cat="plataforma" onclick="setFilter('plataforma', this)">Plataformas</button>
+    <div class="filters-sep"></div>
+    <button class="filter-btn" data-status="activo" onclick="setFilter('activo', this, 'status')">
+      <span style="display:inline-flex;align-items:center;gap:6px;">
+        <span style="width:7px;height:7px;border-radius:50%;background:var(--success);display:inline-block"></span>
+        Activas
+      </span>
+    </button>
+    <button class="filter-btn" data-status="dev" onclick="setFilter('dev', this, 'status')">
+      <span style="display:inline-flex;align-items:center;gap:6px;">
+        <span style="width:7px;height:7px;border-radius:50%;background:var(--warn);display:inline-block"></span>
+        En desarrollo
+      </span>
+    </button>
+  </div>
+
+  <!-- Grid -->
+  <div class="grid" id="app-grid"></div>
+
+</main>
+
+<script>
+/* ===================================================
+   APP DATA
+=================================================== */
+const APPS = [
+  {
+    id: 'auditoria',
+    name: 'Auditoría de Equipo',
+    desc: 'Análisis integral del rendimiento del equipo. Métricas de cuentas, KPIs, seguimiento de actividad y reportes de productividad.',
+    icon: '📊',
+    tags: ['Equipo', 'KPIs', 'Reportes'],
+    cat: 'analisis',
+    status: 'activo',
+    url: '../auditoria/index.html',
+    meta: 'Actualizado Apr 2025',
+    featured: true,
+    grad: 'grad-purple',
+  },
+  {
+    id: 'escucha-activa',
+    name: 'Escucha Activa',
+    desc: 'Dashboard de monitoreo de interacciones y análisis de conversaciones. Integración con workflows de atención al cliente.',
+    icon: '👂',
+    tags: ['Monitor', 'Dashboard', 'Atención'],
+    cat: 'analisis',
+    status: 'dev',
+    url: '../Escuchaactiva/xul-dashboard/index.html',
+    meta: 'En desarrollo',
+    featured: true,
+    grad: 'grad-green',
+  },
+  {
+    id: 'agente-briefing',
+    name: 'Agente Briefing',
+    desc: 'Agente inteligente para la generación y gestión de briefings. Automatiza la creación de briefs para proyectos y campañas.',
+    icon: '🤖',
+    tags: ['Agente', 'Briefing', 'IA'],
+    cat: 'gestion',
+    status: 'dev',
+    url: '../AGENTES/Briefing/agente briefing/index.html',
+    meta: 'En desarrollo',
+    featured: false,
+    grad: 'grad-purple',
+  },
+  {
+    id: 'crm-xul',
+    name: 'CRM XUL',
+    desc: 'Gestión de clientes, contactos y relaciones comerciales. Pipeline de ventas y seguimiento de oportunidades de negocio.',
+    icon: '🤝',
+    tags: ['Clientes', 'Ventas', 'Pipeline'],
+    cat: 'crm',
+    status: 'dev',
+    url: '../CRM XUL/xul-crm/index.html',
+    meta: 'En desarrollo',
+    featured: false,
+    grad: 'grad-teal',
+  },
+];
+
+/* ===================================================
+   STATE
+=================================================== */
+let activeFilter = 'all';
+let activeFilterType = 'cat';
+let searchQuery = '';
+
+/* ===================================================
+   RENDER
+=================================================== */
+function statusLabel(s) {
+  const map = { activo: 'Activo', dev: 'En desarrollo', beta: 'Beta', paused: 'Pausado' };
+  return map[s] || s;
+}
+
+function renderCard(app) {
+  return `
+    <div class="app-card ${app.featured ? 'featured' : ''}"
+         data-cat="${app.cat}" data-status="${app.status}"
+         data-name="${app.name.toLowerCase()}" data-desc="${app.desc.toLowerCase()}">
+      <div class="card-banner">
+        <div class="card-banner-bg ${app.grad}"></div>
+        <div class="card-banner-noise"></div>
+        <div class="card-status-badge ${app.status}">
+          <span class="badge-dot"></span>
+          ${statusLabel(app.status)}
+        </div>
+        <div class="card-icon-wrap">${app.icon}</div>
+      </div>
+      <div class="card-body">
+        <div class="card-name">${app.name}</div>
+        <div class="card-desc">${app.desc}</div>
+        <div class="card-tags">
+          ${app.tags.map(t => `<span class="card-tag">${t}</span>`).join('')}
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="card-meta">${app.meta}</span>
+        <a href="${app.url}"
+           class="btn-launch ${app.status === 'paused' ? 'disabled' : ''}"
+           ${app.status !== 'paused' ? 'target="_blank"' : ''}>
+          Abrir
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  `;
+}
+
+function renderGrid() {
+  const grid = document.getElementById('app-grid');
+  const q = searchQuery.toLowerCase().trim();
+
+  const visible = APPS.filter(app => {
+    const matchSearch = !q
+      || app.name.toLowerCase().includes(q)
+      || app.desc.toLowerCase().includes(q)
+      || app.tags.some(t => t.toLowerCase().includes(q));
+
+    let matchFilter = true;
+    if (activeFilter !== 'all') {
+      if (activeFilterType === 'cat') matchFilter = app.cat === activeFilter;
+      else matchFilter = app.status === activeFilter;
+    }
+
+    return matchSearch && matchFilter;
+  });
+
+  if (visible.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <h3>Sin resultados</h3>
+        <p>No se encontraron aplicaciones con esos criterios.</p>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = visible.map(renderCard).join('');
+}
+
+/* ===================================================
+   FILTERS
+=================================================== */
+function setFilter(value, btn, type = 'cat') {
+  // deactivate all
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeFilter = value;
+  activeFilterType = type;
+  renderGrid();
+}
+
+function filterApps() {
+  searchQuery = document.getElementById('search-input').value;
+  renderGrid();
+}
+
+/* ===================================================
+   THEME
+=================================================== */
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  document.getElementById('theme-icon-dark').style.display = isLight ? 'none' : 'block';
+  document.getElementById('theme-icon-light').style.display = isLight ? 'block' : 'none';
+  localStorage.setItem('xul-theme', isLight ? 'light' : 'dark');
+}
+
+/* ===================================================
+   STATS
+=================================================== */
+function updateStats() {
+  document.getElementById('stat-total').textContent  = APPS.length;
+  document.getElementById('stat-active').textContent = APPS.filter(a => a.status === 'activo').length;
+  document.getElementById('stat-dev').textContent    = APPS.filter(a => a.status === 'dev').length;
+  document.getElementById('stat-beta').textContent   = APPS.filter(a => a.status === 'beta').length;
+}
+
+/* ===================================================
+   INIT
+=================================================== */
+(function init() {
+  if (localStorage.getItem('xul-theme') === 'light') {
+    document.body.classList.add('light');
+    document.getElementById('theme-icon-dark').style.display = 'none';
+    document.getElementById('theme-icon-light').style.display = 'block';
+  }
+  updateStats();
+  renderGrid();
+})();
+</script>
+</body>
+</html>
