@@ -428,6 +428,28 @@ body.light .header-logo img.xul-logo {
 .app-card:nth-child(3) .card-icon-wrap { animation-delay: 0.19s; }
 .app-card:nth-child(4) .card-icon-wrap { animation-delay: 0.26s; }
 .app-card:nth-child(5) .card-icon-wrap { animation-delay: 0.33s; }
+.app-card:nth-child(6) .card-icon-wrap { animation-delay: 0.40s; }
+
+/* ===== MyTrack: manecillas giratorias ===== */
+@keyframes tick {
+  0%   { transform: rotate(0deg);   transform-origin: 12px 13px; }
+  100% { transform: rotate(360deg); transform-origin: 12px 13px; }
+}
+
+@keyframes clock-glow {
+  0%, 100% { filter: drop-shadow(0 0 0px #6AA6F1); }
+  50%       { filter: drop-shadow(0 0 6px #6AA6F1); }
+}
+
+.app-card:hover .icon-clock {
+  animation: clock-glow 1.8s ease-in-out infinite;
+}
+
+.app-card:hover .icon-clock .clock-hands {
+  animation: tick 1.5s linear infinite;
+  transform-origin: 12px 13px;
+  transform-box: fill-box;
+}
 
 .card-status-badge {
   position: absolute;
@@ -758,6 +780,19 @@ const APPS = [
     meta: 'En desarrollo',
     featured: false,
     grad: 'grad-teal',
+  },
+  {
+    id: 'mytrack',
+    name: 'MyTrack',
+    desc: 'Gestión y seguimiento de tiempos por proyecto, cliente y tarea. Registra, analiza y exporta el tiempo dedicado a cada actividad del equipo.',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:56%;height:56%" class="icon-clock"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5" class="clock-hands"/><path d="M9 2h6"/><path d="M12 2v3"/></svg>`,
+    tags: ['Tiempos', 'Proyectos', 'Productividad'],
+    cat: 'gestion',
+    status: 'dev',
+    url: '#',
+    meta: 'Próximamente',
+    featured: false,
+    grad: 'grad-blue',
   },
   {
     id: 'system-prompt',
