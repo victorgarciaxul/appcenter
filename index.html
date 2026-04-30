@@ -124,12 +124,15 @@ body {
 }
 
 .header-logo img.xul-logo {
-  height: 28px;
+  height: 42px;
   width: auto;
   object-fit: contain;
-  /* logo blanco — invertir en light mode */
   filter: none;
-  transition: filter 0.2s;
+  transition: filter 0.2s, transform 0.3s ease;
+}
+
+.header-logo img.xul-logo:hover {
+  transform: scale(1.04);
 }
 
 body.light .header-logo img.xul-logo {
@@ -357,6 +360,29 @@ body.light .header-logo img.xul-logo {
   mix-blend-mode: overlay;
 }
 
+/* ===== Icon animations ===== */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
+}
+
+@keyframes pulse-ring {
+  0%   { box-shadow: var(--shadow), 0 0 0 0 var(--accent-ring); }
+  70%  { box-shadow: var(--shadow), 0 0 0 8px rgba(122,63,175,0); }
+  100% { box-shadow: var(--shadow), 0 0 0 0 rgba(122,63,175,0); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes bounce-in {
+  0%   { transform: scale(0.7); opacity: 0; }
+  60%  { transform: scale(1.12); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 .card-icon-wrap {
   position: absolute;
   bottom: -28px;
@@ -373,6 +399,15 @@ body.light .header-logo img.xul-logo {
   color: var(--fg);
   box-shadow: var(--shadow);
   overflow: hidden;
+  /* bounce al cargar */
+  animation: bounce-in 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+/* Flotar al hacer hover en la card */
+.app-card:hover .card-icon-wrap {
+  animation: float 2.4s ease-in-out infinite, pulse-ring 2s ease-out infinite;
+  border-color: var(--accent-ring);
 }
 
 .card-icon-wrap img {
@@ -380,7 +415,19 @@ body.light .header-logo img.xul-logo {
   height: 100%;
   object-fit: contain;
   padding: 10px;
+  transition: transform 0.3s ease;
 }
+
+.app-card:hover .card-icon-wrap img {
+  transform: scale(1.08);
+}
+
+/* Delay escalonado por posición para el bounce-in */
+.app-card:nth-child(1) .card-icon-wrap { animation-delay: 0.05s; }
+.app-card:nth-child(2) .card-icon-wrap { animation-delay: 0.12s; }
+.app-card:nth-child(3) .card-icon-wrap { animation-delay: 0.19s; }
+.app-card:nth-child(4) .card-icon-wrap { animation-delay: 0.26s; }
+.app-card:nth-child(5) .card-icon-wrap { animation-delay: 0.33s; }
 
 .card-status-badge {
   position: absolute;
