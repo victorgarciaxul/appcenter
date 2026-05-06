@@ -429,6 +429,7 @@ body.light .header-logo img.xul-logo {
 .app-card:nth-child(4) .card-icon-wrap { animation-delay: 0.26s; }
 .app-card:nth-child(5) .card-icon-wrap { animation-delay: 0.33s; }
 .app-card:nth-child(6) .card-icon-wrap { animation-delay: 0.40s; }
+.app-card:nth-child(7) .card-icon-wrap { animation-delay: 0.47s; }
 
 /* ===== MyTrack: manecillas giratorias ===== */
 @keyframes tick {
@@ -628,7 +629,58 @@ body.light .header-logo img.xul-logo {
 .grad-blue   { background: linear-gradient(135deg, #0F2A5A 0%, #1E50A0 100%); }
 .grad-green  { background: linear-gradient(135deg, #0D4028 0%, #1A8050 100%); }
 .grad-orange { background: linear-gradient(135deg, #5A2A0A 0%, #B05010 100%); }
-.grad-pink   { background: linear-gradient(135deg, #5A0A3A 0%, #A01878 100%); }
+.grad-pink    { background: linear-gradient(135deg, #5A0A3A 0%, #A01878 100%); }
+.grad-emerald { background: linear-gradient(135deg, #083D20 0%, #0F7A3A 60%, #16A34A 100%); }
+
+/* ===== EcoFin: barras que crecen + línea de tendencia ===== */
+@keyframes bar-grow-1 {
+  0%   { transform: scaleY(0); transform-origin: bottom; }
+  100% { transform: scaleY(1); transform-origin: bottom; }
+}
+@keyframes bar-grow-2 {
+  0%   { transform: scaleY(0); transform-origin: bottom; }
+  100% { transform: scaleY(1); transform-origin: bottom; }
+}
+@keyframes bar-grow-3 {
+  0%   { transform: scaleY(0); transform-origin: bottom; }
+  100% { transform: scaleY(1); transform-origin: bottom; }
+}
+@keyframes draw-line {
+  0%   { stroke-dashoffset: 40; }
+  100% { stroke-dashoffset: 0; }
+}
+@keyframes dot-pop {
+  0%,60% { transform: scale(0); opacity: 0; transform-box: fill-box; transform-origin: center; }
+  80%    { transform: scale(1.4); opacity: 1; transform-box: fill-box; transform-origin: center; }
+  100%   { transform: scale(1);   opacity: 1; transform-box: fill-box; transform-origin: center; }
+}
+@keyframes ecofin-glow {
+  0%,100% { filter: drop-shadow(0 0 0px #16A34A); }
+  50%      { filter: drop-shadow(0 0 7px #16A34A); }
+}
+
+.app-card:hover .icon-ecofin { animation: ecofin-glow 2s ease-in-out infinite; }
+
+.app-card:hover .icon-ecofin .bar-1 {
+  transform-origin: 4px 21px;
+  animation: bar-grow-1 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.app-card:hover .icon-ecofin .bar-2 {
+  transform-origin: 11px 21px;
+  animation: bar-grow-2 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.1s both;
+}
+.app-card:hover .icon-ecofin .bar-3 {
+  transform-origin: 18px 21px;
+  animation: bar-grow-3 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.2s both;
+}
+.app-card:hover .icon-ecofin .trend-line {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: draw-line 0.6s ease 0.3s both;
+}
+.app-card:hover .icon-ecofin .trend-dot {
+  animation: dot-pop 0.4s ease 0.85s both;
+}
 
   </style>
 </head>
@@ -793,6 +845,25 @@ const APPS = [
     meta: 'En desarrollo',
     featured: false,
     grad: 'grad-blue',
+  },
+  {
+    id: 'ecofin',
+    name: 'EcoFin',
+    desc: 'Control económico de proyectos y proyección de carga de trabajo del equipo. Presupuestos, rentabilidad y distribución de recursos en tiempo real.',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:56%;height:56%" class="icon-ecofin">
+      <rect x="2"  y="14" width="4" height="7" rx="1" class="bar bar-1"/>
+      <rect x="9"  y="9"  width="4" height="12" rx="1" class="bar bar-2"/>
+      <rect x="16" y="5"  width="4" height="16" rx="1" class="bar bar-3"/>
+      <polyline points="3,13 7,8 12,10 17,4" class="trend-line" stroke-width="1.8"/>
+      <circle cx="17" cy="4" r="1.5" fill="currentColor" class="trend-dot"/>
+    </svg>`,
+    tags: ['Economía', 'Proyectos', 'Equipo'],
+    cat: 'gestion',
+    status: 'dev',
+    url: '#',
+    meta: 'Próximamente',
+    featured: false,
+    grad: 'grad-emerald',
   },
   {
     id: 'system-prompt',
