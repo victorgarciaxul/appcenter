@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#14532D"/>
+      <stop offset="55%"  stop-color="#16A34A"/>
+      <stop offset="100%" stop-color="#22C55E"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Fondo verde -->
+  <rect width="96" height="96" rx="18" fill="url(#bg)"/>
+
+  <!-- Brillo sutil -->
+  <rect width="96" height="48" rx="18" fill="white" fill-opacity="0.06"/>
+
+  <!-- Buzón: cuerpo -->
+  <rect x="18" y="38" width="60" height="38" rx="5" fill="white" fill-opacity="0.95"/>
+
+  <!-- Buzón: tapa/sobre - triángulo superior -->
+  <path d="M18 42 L48 62 L78 42" fill="none" stroke="#16A34A" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- Buzón: línea de apertura -->
+  <line x1="18" y1="38" x2="78" y2="38" stroke="#16A34A" stroke-width="2.5"/>
+
+  <!-- Ranura de inserción -->
+  <rect x="34" y="26" width="28" height="7" rx="3.5" fill="white" fill-opacity="0.9"/>
+
+  <!-- Flecha hacia abajo en la ranura -->
+  <path d="M48 21 L48 27 M45 25 L48 28 L51 25" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
