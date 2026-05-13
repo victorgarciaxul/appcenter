@@ -1,0 +1,10 @@
+[
+  { "name": "Xul Tech",        "url": "https://xultech.xul.es/",       "emoji": "📊", "status": "activa", "cat": "Análisis"  },
+  { "name": "DeepTalk",        "url": "https://deeptalk.xul.es/",       "emoji": "👂", "status": "dev",    "cat": "Análisis"  },
+  { "name": "Agente Briefing", "url": "https://briefing.xul.es/",       "emoji": "🤖", "status": "activa", "cat": "Gestión"   },
+  { "name": "CRM XUL",         "url": "https://crm.xul.es/",            "emoji": "🤝", "status": "dev",    "cat": "CRM"       },
+  { "name": "MyTrack",         "url": "https://mytrack.xul.es/",        "emoji": "⏱️", "status": "dev",    "cat": "Gestión"   },
+  { "name": "EcoFin",          "url": "https://ecofin.xul.es/",         "emoji": "📈", "status": "dev",    "cat": "Economía"  },
+  { "name": "Systems Prompt",  "url": "https://systemsprompt.xul.es/",  "emoji": "📝", "status": "activa", "cat": "Gestión"   },
+  { "name": "B Corp",          "url": "https://bcorp.xul.es/",          "emoji": "♻️", "status": "dev",    "cat": "Gestión"   }
+]
