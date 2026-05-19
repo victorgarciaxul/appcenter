@@ -433,6 +433,7 @@ body.light .header-logo img.xul-logo {
 .app-card:nth-child(6) .card-icon-wrap { animation-delay: 0.40s; }
 .app-card:nth-child(7) .card-icon-wrap { animation-delay: 0.47s; }
 .app-card:nth-child(8) .card-icon-wrap { animation-delay: 0.54s; }
+.app-card:nth-child(9) .card-icon-wrap { animation-delay: 0.61s; }
 
 /* ===== MyTrack: manecillas giratorias ===== */
 @keyframes tick {
@@ -723,6 +724,25 @@ body.light .header-logo img.xul-logo {
   animation: bcorp-bar-in 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.2s both;
 }
 
+/* ===== GIROS: flechas giratorias ===== */
+.grad-giros { background: linear-gradient(135deg, #2D1800 0%, #6B3A00 55%, #A05800 100%); }
+
+@keyframes giros-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes giros-glow {
+  0%,100% { filter: drop-shadow(0 0 0px rgba(200,130,0,0)); }
+  50%      { filter: drop-shadow(0 0 7px rgba(200,130,0,0.65)); }
+}
+
+.app-card:hover .icon-giros { animation: giros-glow 2s ease-in-out infinite; }
+.app-card:hover .icon-giros .giros-arrows {
+  animation: giros-spin 2.5s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
   </style>
 </head>
 <body>
@@ -936,6 +956,26 @@ const APPS = [
     meta: 'Próximamente',
     featured: false,
     grad: 'grad-bcorp',
+  },
+  {
+    id: 'giros',
+    name: 'Giros',
+    desc: 'Espacio bimensual donde los proyectos compartirán aprendizajes que puedan servir al resto del equipo. Un lugar para preguntarnos juntxs qué hacemos cuando el viento cambia.',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:54%;height:54%" class="icon-giros">
+      <g class="giros-arrows">
+        <path d="M21 12a9 9 0 0 0-9-9 9 9 0 0 0-6.36 2.64"/>
+        <polyline points="2 3 5.64 3 5.64 6.64"/>
+        <path d="M3 12a9 9 0 0 0 9 9 9 9 0 0 0 6.36-2.64"/>
+        <polyline points="22 21 18.36 21 18.36 17.36"/>
+      </g>
+    </svg>`,
+    tags: ['Equipo', 'Aprendizaje', 'Cultura'],
+    cat: 'gestion',
+    status: 'activa',
+    url: 'https://giros.xul.es/',
+    meta: 'Bimensual',
+    featured: false,
+    grad: 'grad-giros',
   },
 ];
 
