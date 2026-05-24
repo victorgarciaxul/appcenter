@@ -91,6 +91,84 @@ body {
   transition: background 0.2s, color 0.2s;
 }
 
+/* ===== Fondo animado ===== */
+.bg-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Grid de puntos */
+.bg-canvas::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.045) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
+
+body.light .bg-canvas::before {
+  background-image: radial-gradient(circle, rgba(0,0,0,0.06) 1px, transparent 1px);
+}
+
+/* Orbes flotantes */
+.bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+}
+
+.orb-1 {
+  width: 700px; height: 700px;
+  background: radial-gradient(circle, rgba(91,42,134,0.20) 0%, transparent 70%);
+  top: -250px; left: -150px;
+  animation: orb-1 22s ease-in-out infinite;
+}
+.orb-2 {
+  width: 550px; height: 550px;
+  background: radial-gradient(circle, rgba(216,46,46,0.13) 0%, transparent 70%);
+  bottom: 50px; right: -120px;
+  animation: orb-2 28s ease-in-out infinite;
+}
+.orb-3 {
+  width: 450px; height: 450px;
+  background: radial-gradient(circle, rgba(106,166,241,0.10) 0%, transparent 70%);
+  top: 45%; left: 45%;
+  animation: orb-3 19s ease-in-out infinite;
+}
+.orb-4 {
+  width: 350px; height: 350px;
+  background: radial-gradient(circle, rgba(59,185,122,0.09) 0%, transparent 70%);
+  bottom: 30%; left: 10%;
+  animation: orb-4 24s ease-in-out infinite;
+}
+
+@keyframes orb-1 {
+  0%,100% { transform: translate(0,0); }
+  33%      { transform: translate(70px, 90px); }
+  66%      { transform: translate(-50px, 50px); }
+}
+@keyframes orb-2 {
+  0%,100% { transform: translate(0,0); }
+  33%      { transform: translate(-90px, -70px); }
+  66%      { transform: translate(50px, -40px); }
+}
+@keyframes orb-3 {
+  0%,100% { transform: translate(0,0); }
+  50%      { transform: translate(-60px, 60px); }
+}
+@keyframes orb-4 {
+  0%,100% { transform: translate(0,0); }
+  40%      { transform: translate(80px, -50px); }
+  70%      { transform: translate(30px, 40px); }
+}
+
+/* Asegurar que el contenido quede por encima */
+.header { z-index: 100; }
+main.page { position: relative; z-index: 1; }
+
 /* ===== Layout ===== */
 .page {
   max-width: 1280px;
@@ -746,6 +824,14 @@ body.light .header-logo img.xul-logo {
   </style>
 </head>
 <body>
+
+<!-- FONDO ANIMADO -->
+<div class="bg-canvas" aria-hidden="true">
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+  <div class="bg-orb orb-4"></div>
+</div>
 
 <!-- HEADER -->
 <header class="header">
