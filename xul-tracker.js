@@ -73,7 +73,12 @@
       const mt = JSON.parse(localStorage.getItem("mytrack-demo-user"));
       if (mt?.email) return { email: mt.email, name: mt.name || mt.email.split("@")[0] };
     } catch {}
-    // 3. Custom auth apps that store email manually (systemprompt)
+    // 3. Giros: sessionStorage['giros_session'] = {email, name, ...}
+    try {
+      const gs = JSON.parse(sessionStorage.getItem("giros_session"));
+      if (gs?.email) return { email: gs.email, name: gs.name || gs.email.split("@")[0] };
+    } catch {}
+    // 4. Custom auth apps that store email manually (systemprompt, DeepTalk, bcorp, xultech, crm)
     const customEmail = localStorage.getItem("xul_tracker_email");
     if (customEmail) {
       return { email: customEmail, name: customEmail.split("@")[0] };
