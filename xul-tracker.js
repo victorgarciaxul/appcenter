@@ -123,8 +123,16 @@
   window.addEventListener("beforeunload", closeSession);
 
   // ─── Init ─────────────────────────────────────────────────────────────────
-  // Wait 2s for auth to initialize before reading the session
-  setTimeout(openSession, 2000);
+  // Retry until a real user is found (Supabase may restore session async)
+  function initWithRetry(attemptsLeft) {
+    const user = getUserFromStorage();
+    if (user.email !== "anon@xul.es" || attemptsLeft <= 0) {
+      openSession();
+    } else {
+      setTimeout(() => initWithRetry(attemptsLeft - 1), 2000);
+    }
+  }
+  setTimeout(() => initWithRetry(10), 1000); // up to ~21s of retries
 
   // Expose for debugging: window._xulTracker.status()
   window._xulTracker = {
