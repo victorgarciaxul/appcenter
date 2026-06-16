@@ -27,23 +27,46 @@
 
   // ─── User detection ──────────────────────────────────────────────────────
   function getUserFromStorage() {
-    // 1. Supabase: scan localStorage for sb-*-auth-token (any Supabase project)
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) {
-        try {
-          const data = JSON.parse(localStorage.getItem(key));
-          const user = data?.user;
-          if (user?.email) {
-            return {
-              email: user.email,
-              name: user.user_metadata?.full_name
-                 || user.user_metadata?.name
-                 || user.email.split("@")[0]
-            };
+    // 1. Supabase v2: token may be chunked as sb-*-auth-token.0, .1, ...
+    //    or stored as a single sb-*-auth-token key
+    const allKeys = [];
+    for (let i = 0; i < localStorage.length; i++) allKeys.push(localStorage.key(i));
+
+    // Find all Supabase auth token base keys
+    const baseKeys = new Set();
+    for (const key of allKeys) {
+      if (!key || !key.startsWith("sb-")) continue;
+      if (key.endsWith("-auth-token")) baseKeys.add(key);
+      const chunkMatch = key.match(/^(sb-.+-auth-token)\.\d+$/);
+      if (chunkMatch) baseKeys.add(chunkMatch[1]);
+    }
+
+    for (const base of baseKeys) {
+      try {
+        let raw = localStorage.getItem(base);
+        if (!raw) {
+          // Reassemble chunked token
+          let chunks = "", i = 0;
+          while (true) {
+            const chunk = localStorage.getItem(`${base}.${i}`);
+            if (chunk === null) break;
+            chunks += chunk;
+            i++;
           }
-        } catch { /* continue */ }
-      }
+          raw = chunks || null;
+        }
+        if (!raw) continue;
+        const data = JSON.parse(raw);
+        const user = data?.user;
+        if (user?.email) {
+          return {
+            email: user.email,
+            name: user.user_metadata?.full_name
+               || user.user_metadata?.name
+               || user.email.split("@")[0]
+          };
+        }
+      } catch { /* continue */ }
     }
     // 2. Custom auth apps that store email manually (systemprompt)
     const customEmail = localStorage.getItem("xul_tracker_email");
