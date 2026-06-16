@@ -68,7 +68,12 @@
         }
       } catch { /* continue */ }
     }
-    // 2. Custom auth apps that store email manually (systemprompt)
+    // 2. MyTrack custom auth
+    try {
+      const mt = JSON.parse(localStorage.getItem("mytrack-demo-user"));
+      if (mt?.email) return { email: mt.email, name: mt.name || mt.email.split("@")[0] };
+    } catch {}
+    // 3. Custom auth apps that store email manually (systemprompt)
     const customEmail = localStorage.getItem("xul_tracker_email");
     if (customEmail) {
       return { email: customEmail, name: customEmail.split("@")[0] };
