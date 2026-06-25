@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
 
 /* ===== Reset ===== */
@@ -91,6 +92,124 @@ body {
   transition: background 0.2s, color 0.2s;
 }
 
+/* ===== Login Overlay ===== */
+#login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+#login-overlay.hidden { display: none; }
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 40px 36px 36px;
+  box-shadow: var(--shadow-lg);
+}
+
+.login-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.login-logo img {
+  height: 36px;
+  width: auto;
+}
+
+body.light .login-logo img { filter: invert(1); }
+
+.login-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.login-sub {
+  font-size: 13px;
+  color: var(--fg-muted);
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.login-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.login-field input {
+  height: 42px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 14px;
+  font-size: 14px;
+  color: var(--fg);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-family: var(--font);
+}
+
+.login-field input::placeholder { color: var(--fg-subtle); }
+
+.login-field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.login-error {
+  font-size: 13px;
+  color: var(--danger);
+  text-align: center;
+  min-height: 20px;
+  margin-bottom: 4px;
+}
+
+.btn-login {
+  width: 100%;
+  height: 44px;
+  background: var(--xul-purple-2);
+  border-radius: var(--radius);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 8px;
+  transition: background 0.15s, opacity 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-login:hover { background: var(--xul-purple-3); }
+.btn-login:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ===== App (hidden until logged in) ===== */
+#app-wrapper { display: none; }
+#app-wrapper.visible { display: block; }
+
 /* ===== Fondo animado ===== */
 .bg-canvas {
   position: fixed;
@@ -100,7 +219,6 @@ body {
   pointer-events: none;
 }
 
-/* Grid de puntos */
 .bg-canvas::before {
   content: '';
   position: absolute;
@@ -113,7 +231,6 @@ body.light .bg-canvas::before {
   background-image: radial-gradient(circle, rgba(0,0,0,0.06) 1px, transparent 1px);
 }
 
-/* Orbes flotantes */
 .bg-orb {
   position: absolute;
   border-radius: 50%;
@@ -165,7 +282,6 @@ body.light .bg-canvas::before {
   70%      { transform: translate(30px, 40px); }
 }
 
-/* Asegurar que el contenido quede por encima */
 .header { z-index: 100; }
 main.page { position: relative; z-index: 1; }
 
@@ -207,17 +323,12 @@ main.page { position: relative; z-index: 1; }
   height: 42px;
   width: auto;
   object-fit: contain;
-  filter: none;
   transition: filter 0.2s, transform 0.3s ease;
 }
 
-.header-logo img.xul-logo:hover {
-  transform: scale(1.04);
-}
+.header-logo img.xul-logo:hover { transform: scale(1.04); }
 
-body.light .header-logo img.xul-logo {
-  filter: invert(1);
-}
+body.light .header-logo img.xul-logo { filter: invert(1); }
 
 .header-divider {
   width: 1px;
@@ -284,10 +395,46 @@ body.light .header-logo img.xul-logo {
 
 .btn-theme:hover { background: var(--surface-hover); color: var(--fg); }
 
-/* ===== Hero ===== */
-.hero {
-  padding: 56px 0 40px;
+/* User chip + logout */
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
+
+.user-email {
+  font-size: 12px;
+  color: var(--fg-muted);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-logout {
+  height: 32px;
+  padding: 0 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.12s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-logout:hover {
+  background: rgba(232, 71, 61, 0.12);
+  border-color: rgba(232, 71, 61, 0.3);
+  color: var(--danger);
+}
+
+/* ===== Hero ===== */
+.hero { padding: 56px 0 40px; }
 
 .hero h1 {
   font-size: 36px;
@@ -329,22 +476,13 @@ body.light .header-logo img.xul-logo {
   font-size: 13px;
 }
 
-.stat-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
+.stat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .stat-dot.purple { background: var(--xul-purple-2); }
 .stat-dot.green  { background: var(--success); }
 .stat-dot.yellow { background: var(--warn); }
 .stat-dot.red    { background: var(--danger); }
 
-.stat-num {
-  font-weight: 700;
-  color: var(--fg);
-}
+.stat-num  { font-weight: 700; color: var(--fg); }
 .stat-label { color: var(--fg-muted); }
 
 /* ===== Filters ===== */
@@ -377,12 +515,7 @@ body.light .header-logo img.xul-logo {
   color: var(--fg);
 }
 
-.filters-sep {
-  width: 1px;
-  height: 20px;
-  background: var(--border);
-  margin: 0 4px;
-}
+.filters-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
 
 /* ===== Grid ===== */
 .grid {
@@ -411,15 +544,9 @@ body.light .header-logo img.xul-logo {
   border-color: var(--border-strong);
 }
 
-.app-card.featured {
-  border-color: rgba(122, 63, 175, 0.3);
-}
+.app-card.featured { border-color: rgba(122, 63, 175, 0.3); }
+.app-card.featured:hover { border-color: var(--accent-ring); }
 
-.app-card.featured:hover {
-  border-color: var(--accent-ring);
-}
-
-/* Card top banner */
 .card-banner {
   height: 96px;
   position: relative;
@@ -427,11 +554,7 @@ body.light .header-logo img.xul-logo {
   flex-shrink: 0;
 }
 
-.card-banner-bg {
-  position: absolute;
-  inset: 0;
-  opacity: 0.9;
-}
+.card-banner-bg { position: absolute; inset: 0; opacity: 0.9; }
 
 .card-banner-noise {
   position: absolute;
@@ -440,23 +563,15 @@ body.light .header-logo img.xul-logo {
   mix-blend-mode: overlay;
 }
 
-/* ===== Icon animations ===== */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
   50%       { transform: translateY(-6px); }
 }
-
 @keyframes pulse-ring {
   0%   { box-shadow: var(--shadow), 0 0 0 0 var(--accent-ring); }
   70%  { box-shadow: var(--shadow), 0 0 0 8px rgba(122,63,175,0); }
   100% { box-shadow: var(--shadow), 0 0 0 0 rgba(122,63,175,0); }
 }
-
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
 @keyframes bounce-in {
   0%   { transform: scale(0.7); opacity: 0; }
   60%  { transform: scale(1.12); }
@@ -479,12 +594,10 @@ body.light .header-logo img.xul-logo {
   color: var(--fg);
   box-shadow: var(--shadow);
   overflow: hidden;
-  /* bounce al cargar */
   animation: bounce-in 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
-/* Flotar al hacer hover en la card */
 .app-card:hover .card-icon-wrap {
   animation: float 2.4s ease-in-out infinite, pulse-ring 2s ease-out infinite;
   border-color: var(--accent-ring);
@@ -498,11 +611,8 @@ body.light .header-logo img.xul-logo {
   transition: transform 0.3s ease;
 }
 
-.app-card:hover .card-icon-wrap img {
-  transform: scale(1.08);
-}
+.app-card:hover .card-icon-wrap img { transform: scale(1.08); }
 
-/* Delay escalonado por posición para el bounce-in */
 .app-card:nth-child(1) .card-icon-wrap { animation-delay: 0.05s; }
 .app-card:nth-child(2) .card-icon-wrap { animation-delay: 0.12s; }
 .app-card:nth-child(3) .card-icon-wrap { animation-delay: 0.19s; }
@@ -513,21 +623,16 @@ body.light .header-logo img.xul-logo {
 .app-card:nth-child(8) .card-icon-wrap { animation-delay: 0.54s; }
 .app-card:nth-child(9) .card-icon-wrap { animation-delay: 0.61s; }
 
-/* ===== MyTrack: manecillas giratorias ===== */
 @keyframes tick {
   0%   { transform: rotate(0deg);   transform-origin: 12px 13px; }
   100% { transform: rotate(360deg); transform-origin: 12px 13px; }
 }
-
 @keyframes clock-glow {
   0%, 100% { filter: drop-shadow(0 0 0px #6AA6F1); }
   50%       { filter: drop-shadow(0 0 6px #6AA6F1); }
 }
 
-.app-card:hover .icon-clock {
-  animation: clock-glow 1.8s ease-in-out infinite;
-}
-
+.app-card:hover .icon-clock { animation: clock-glow 1.8s ease-in-out infinite; }
 .app-card:hover .icon-clock .clock-hands {
   animation: tick 1.5s linear infinite;
   transform-origin: 12px 13px;
@@ -550,41 +655,17 @@ body.light .header-logo img.xul-logo {
   text-transform: uppercase;
 }
 
-.badge-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
+.badge-dot { width: 6px; height: 6px; border-radius: 50%; }
 
-.card-status-badge.activo {
-  background: rgba(59, 185, 122, 0.18);
-  color: var(--success);
-  border: 1px solid rgba(59, 185, 122, 0.25);
-}
+.card-status-badge.activo { background: rgba(59,185,122,0.18); color: var(--success); border: 1px solid rgba(59,185,122,0.25); }
 .card-status-badge.activo .badge-dot { background: var(--success); }
-
-.card-status-badge.dev {
-  background: rgba(232, 184, 74, 0.15);
-  color: var(--warn);
-  border: 1px solid rgba(232, 184, 74, 0.25);
-}
+.card-status-badge.dev    { background: rgba(232,184,74,0.15);  color: var(--warn);    border: 1px solid rgba(232,184,74,0.25); }
 .card-status-badge.dev .badge-dot { background: var(--warn); }
-
-.card-status-badge.beta {
-  background: rgba(106, 166, 241, 0.15);
-  color: var(--info);
-  border: 1px solid rgba(106, 166, 241, 0.25);
-}
+.card-status-badge.beta   { background: rgba(106,166,241,0.15); color: var(--info);    border: 1px solid rgba(106,166,241,0.25); }
 .card-status-badge.beta .badge-dot { background: var(--info); }
-
-.card-status-badge.paused {
-  background: rgba(108, 108, 116, 0.15);
-  color: var(--fg-subtle);
-  border: 1px solid rgba(108, 108, 116, 0.2);
-}
+.card-status-badge.paused { background: rgba(108,108,116,0.15); color: var(--fg-subtle); border: 1px solid rgba(108,108,116,0.2); }
 .card-status-badge.paused .badge-dot { background: var(--fg-subtle); }
 
-/* Card body */
 .card-body {
   padding: 44px 24px 20px;
   flex: 1;
@@ -593,26 +674,10 @@ body.light .header-logo img.xul-logo {
   gap: 10px;
 }
 
-.card-name {
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
+.card-name  { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+.card-desc  { font-size: 13px; color: var(--fg-muted); line-height: 1.55; flex: 1; }
 
-.card-desc {
-  font-size: 13px;
-  color: var(--fg-muted);
-  line-height: 1.55;
-  flex: 1;
-}
-
-.card-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
-}
+.card-tags  { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 
 .card-tag {
   height: 22px;
@@ -627,7 +692,6 @@ body.light .header-logo img.xul-logo {
   align-items: center;
 }
 
-/* Card footer */
 .card-footer {
   padding: 16px 24px 20px;
   display: flex;
@@ -637,10 +701,7 @@ body.light .header-logo img.xul-logo {
   border-top: 1px solid var(--border);
 }
 
-.card-meta {
-  font-size: 11px;
-  color: var(--fg-subtle);
-}
+.card-meta { font-size: 11px; color: var(--fg-subtle); }
 
 .btn-launch {
   height: 34px;
@@ -658,42 +719,81 @@ body.light .header-logo img.xul-logo {
   text-decoration: none;
 }
 
-.btn-launch:hover {
-  background: var(--xul-purple-2);
-  border-color: var(--xul-purple-2);
-  color: #fff;
-}
-
-.btn-launch svg { width: 14px; height: 14px; flex-shrink: 0; }
-
-.btn-launch.disabled {
-  opacity: 0.4;
-  pointer-events: none;
-}
+.btn-launch:hover { background: var(--xul-purple-2); border-color: var(--xul-purple-2); color: #fff; }
+.btn-launch.disabled { opacity: 0.4; pointer-events: none; }
 
 /* ===== Empty state ===== */
-.empty-state {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 80px 20px;
-  color: var(--fg-muted);
-}
-
+.empty-state { grid-column: 1 / -1; text-align: center; padding: 80px 20px; color: var(--fg-muted); }
 .empty-state svg { margin-bottom: 16px; color: var(--fg-subtle); }
 .empty-state h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
-.empty-state p { font-size: 13px; color: var(--fg-subtle); }
+.empty-state p  { font-size: 13px; color: var(--fg-subtle); }
 
-/* ===== Section label ===== */
-.section-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--fg-subtle);
-  margin-bottom: 16px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
+/* ===== Change Password Modal ===== */
+#pwd-modal-bg {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
 }
+#pwd-modal-bg.open { display: flex; }
+
+.pwd-modal {
+  width: 100%;
+  max-width: 360px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 32px 28px 28px;
+  box-shadow: var(--shadow-lg);
+}
+
+.pwd-modal-title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 20px;
+}
+
+.pwd-modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.btn-pwd-save {
+  flex: 1;
+  height: 40px;
+  background: var(--xul-purple-2);
+  border-radius: var(--radius);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+.btn-pwd-save:hover { background: var(--xul-purple-3); }
+.btn-pwd-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-pwd-cancel {
+  height: 40px;
+  padding: 0 16px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--fg-muted);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.12s;
+}
+.btn-pwd-cancel:hover { background: var(--surface-hover); color: var(--fg); }
+
+.pwd-msg { font-size: 13px; min-height: 20px; text-align: center; margin-top: 4px; }
+.pwd-msg.ok    { color: var(--success); }
+.pwd-msg.error { color: var(--danger); }
 
 /* ===== Responsive ===== */
 @media (max-width: 680px) {
@@ -702,228 +802,229 @@ body.light .header-logo img.xul-logo {
   .header-search { width: 180px; }
   .grid { grid-template-columns: 1fr; }
   .stats { gap: 8px; }
+  .user-email { display: none; }
 }
 
 /* ===== Gradient presets ===== */
-.grad-purple { background: linear-gradient(135deg, #3A1060 0%, #6B32A0 100%); }
-.grad-red    { background: linear-gradient(135deg, #7A1A1A 0%, #C03030 100%); }
-.grad-teal   { background: linear-gradient(135deg, #0D4D4D 0%, #1A8080 100%); }
-.grad-blue   { background: linear-gradient(135deg, #0F2A5A 0%, #1E50A0 100%); }
-.grad-green  { background: linear-gradient(135deg, #0D4028 0%, #1A8050 100%); }
-.grad-orange { background: linear-gradient(135deg, #5A2A0A 0%, #B05010 100%); }
+.grad-purple  { background: linear-gradient(135deg, #3A1060 0%, #6B32A0 100%); }
+.grad-red     { background: linear-gradient(135deg, #7A1A1A 0%, #C03030 100%); }
+.grad-teal    { background: linear-gradient(135deg, #0D4D4D 0%, #1A8080 100%); }
+.grad-blue    { background: linear-gradient(135deg, #0F2A5A 0%, #1E50A0 100%); }
+.grad-green   { background: linear-gradient(135deg, #0D4028 0%, #1A8050 100%); }
+.grad-orange  { background: linear-gradient(135deg, #5A2A0A 0%, #B05010 100%); }
 .grad-pink    { background: linear-gradient(135deg, #5A0A3A 0%, #A01878 100%); }
 .grad-emerald { background: linear-gradient(135deg, #083D20 0%, #0F7A3A 60%, #16A34A 100%); }
+.grad-bcorp   { background: linear-gradient(135deg, #0C1A0C 0%, #1A3B1A 55%, #2D5C2D 100%); }
+.grad-giros   { background: linear-gradient(135deg, #2D1800 0%, #6B3A00 55%, #A05800 100%); }
 
-/* ===== EcoFin: barras que crecen + línea de tendencia ===== */
-@keyframes bar-grow-1 {
-  0%   { transform: scaleY(0); transform-origin: bottom; }
-  100% { transform: scaleY(1); transform-origin: bottom; }
-}
-@keyframes bar-grow-2 {
-  0%   { transform: scaleY(0); transform-origin: bottom; }
-  100% { transform: scaleY(1); transform-origin: bottom; }
-}
-@keyframes bar-grow-3 {
-  0%   { transform: scaleY(0); transform-origin: bottom; }
-  100% { transform: scaleY(1); transform-origin: bottom; }
-}
-@keyframes draw-line {
-  0%   { stroke-dashoffset: 40; }
-  100% { stroke-dashoffset: 0; }
-}
-@keyframes dot-pop {
-  0%,60% { transform: scale(0); opacity: 0; transform-box: fill-box; transform-origin: center; }
-  80%    { transform: scale(1.4); opacity: 1; transform-box: fill-box; transform-origin: center; }
-  100%   { transform: scale(1);   opacity: 1; transform-box: fill-box; transform-origin: center; }
-}
-@keyframes ecofin-glow {
-  0%,100% { filter: drop-shadow(0 0 0px #16A34A); }
-  50%      { filter: drop-shadow(0 0 7px #16A34A); }
-}
+/* ===== EcoFin animations ===== */
+@keyframes bar-grow-1 { 0% { transform: scaleY(0); transform-origin: bottom; } 100% { transform: scaleY(1); transform-origin: bottom; } }
+@keyframes bar-grow-2 { 0% { transform: scaleY(0); transform-origin: bottom; } 100% { transform: scaleY(1); transform-origin: bottom; } }
+@keyframes bar-grow-3 { 0% { transform: scaleY(0); transform-origin: bottom; } 100% { transform: scaleY(1); transform-origin: bottom; } }
+@keyframes draw-line  { 0% { stroke-dashoffset: 40; } 100% { stroke-dashoffset: 0; } }
+@keyframes dot-pop    { 0%,60% { transform: scale(0); opacity: 0; transform-box: fill-box; transform-origin: center; } 80% { transform: scale(1.4); opacity: 1; transform-box: fill-box; transform-origin: center; } 100% { transform: scale(1); opacity: 1; transform-box: fill-box; transform-origin: center; } }
+@keyframes ecofin-glow { 0%,100% { filter: drop-shadow(0 0 0px #16A34A); } 50% { filter: drop-shadow(0 0 7px #16A34A); } }
 
 .app-card:hover .icon-ecofin { animation: ecofin-glow 2s ease-in-out infinite; }
+.app-card:hover .icon-ecofin .bar-1 { transform-origin: 4px 21px; animation: bar-grow-1 0.4s cubic-bezier(0.34,1.56,0.64,1) both; }
+.app-card:hover .icon-ecofin .bar-2 { transform-origin: 11px 21px; animation: bar-grow-2 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.1s both; }
+.app-card:hover .icon-ecofin .bar-3 { transform-origin: 18px 21px; animation: bar-grow-3 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.2s both; }
+.app-card:hover .icon-ecofin .trend-line { stroke-dasharray: 40; stroke-dashoffset: 40; animation: draw-line 0.6s ease 0.3s both; }
+.app-card:hover .icon-ecofin .trend-dot  { animation: dot-pop 0.4s ease 0.85s both; }
 
-.app-card:hover .icon-ecofin .bar-1 {
-  transform-origin: 4px 21px;
-  animation: bar-grow-1 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
-}
-.app-card:hover .icon-ecofin .bar-2 {
-  transform-origin: 11px 21px;
-  animation: bar-grow-2 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.1s both;
-}
-.app-card:hover .icon-ecofin .bar-3 {
-  transform-origin: 18px 21px;
-  animation: bar-grow-3 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.2s both;
-}
-.app-card:hover .icon-ecofin .trend-line {
-  stroke-dasharray: 40;
-  stroke-dashoffset: 40;
-  animation: draw-line 0.6s ease 0.3s both;
-}
-.app-card:hover .icon-ecofin .trend-dot {
-  animation: dot-pop 0.4s ease 0.85s both;
-}
-
-/* ===== B Corp gradient ===== */
-.grad-bcorp { background: linear-gradient(135deg, #0C1A0C 0%, #1A3B1A 55%, #2D5C2D 100%); }
-
-/* ===== B Corp: anillo giratorio + barra deslizante + stamp ===== */
-@keyframes bcorp-rotate {
-  from { transform: rotate(0deg); transform-origin: 14px 13px; }
-  to   { transform: rotate(360deg); transform-origin: 14px 13px; }
-}
-@keyframes bcorp-bar-in {
-  0%   { transform: scaleX(0); }
-  100% { transform: scaleX(1); }
-}
-@keyframes bcorp-letter-stamp {
-  0%   { transform: scale(0.6); opacity: 0.3; transform-box: fill-box; transform-origin: center; }
-  60%  { transform: scale(1.15); opacity: 1;   transform-box: fill-box; transform-origin: center; }
-  100% { transform: scale(1);    opacity: 1;   transform-box: fill-box; transform-origin: center; }
-}
-@keyframes bcorp-glow {
-  0%,100% { filter: drop-shadow(0 0 0px rgba(74,180,74,0)); }
-  50%      { filter: drop-shadow(0 0 7px rgba(74,180,74,0.55)); }
-}
+/* ===== B Corp animations ===== */
+@keyframes bcorp-rotate  { from { transform: rotate(0deg); transform-origin: 14px 13px; } to { transform: rotate(360deg); transform-origin: 14px 13px; } }
+@keyframes bcorp-bar-in  { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+@keyframes bcorp-letter-stamp { 0% { transform: scale(0.6); opacity: 0.3; transform-box: fill-box; transform-origin: center; } 60% { transform: scale(1.15); opacity: 1; transform-box: fill-box; transform-origin: center; } 100% { transform: scale(1); opacity: 1; transform-box: fill-box; transform-origin: center; } }
+@keyframes bcorp-glow { 0%,100% { filter: drop-shadow(0 0 0px rgba(74,180,74,0)); } 50% { filter: drop-shadow(0 0 7px rgba(74,180,74,0.55)); } }
 
 .app-card:hover .icon-bcorp { animation: bcorp-glow 2.2s ease-in-out infinite; }
+.app-card:hover .icon-bcorp .bcorp-ring   { animation: bcorp-rotate 5s linear infinite; transform-origin: 14px 13px; transform-box: fill-box; }
+.app-card:hover .icon-bcorp .bcorp-letter { animation: bcorp-letter-stamp 0.45s cubic-bezier(0.34,1.56,0.64,1) both; }
+.app-card:hover .icon-bcorp .bcorp-bar    { transform-origin: left center; transform-box: fill-box; animation: bcorp-bar-in 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.2s both; }
 
-.app-card:hover .icon-bcorp .bcorp-ring {
-  animation: bcorp-rotate 5s linear infinite;
-  transform-origin: 14px 13px;
-  transform-box: fill-box;
-}
-.app-card:hover .icon-bcorp .bcorp-letter {
-  animation: bcorp-letter-stamp 0.45s cubic-bezier(0.34,1.56,0.64,1) both;
-}
-.app-card:hover .icon-bcorp .bcorp-bar {
-  transform-origin: left center;
-  transform-box: fill-box;
-  animation: bcorp-bar-in 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.2s both;
-}
-
-/* ===== GIROS: flechas giratorias ===== */
-.grad-giros { background: linear-gradient(135deg, #2D1800 0%, #6B3A00 55%, #A05800 100%); }
-
-@keyframes giros-spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-@keyframes giros-glow {
-  0%,100% { filter: drop-shadow(0 0 0px rgba(200,130,0,0)); }
-  50%      { filter: drop-shadow(0 0 7px rgba(200,130,0,0.65)); }
-}
+/* ===== Giros animations ===== */
+@keyframes giros-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes giros-glow { 0%,100% { filter: drop-shadow(0 0 0px rgba(200,130,0,0)); } 50% { filter: drop-shadow(0 0 7px rgba(200,130,0,0.65)); } }
 
 .app-card:hover .icon-giros { animation: giros-glow 2s ease-in-out infinite; }
-.app-card:hover .icon-giros .giros-arrows {
-  animation: giros-spin 2.5s linear infinite;
-  transform-box: fill-box;
-  transform-origin: center;
-}
+.app-card:hover .icon-giros .giros-arrows { animation: giros-spin 2.5s linear infinite; transform-box: fill-box; transform-origin: center; }
 
   </style>
 </head>
 <body>
 
-<!-- FONDO ANIMADO -->
-<div class="bg-canvas" aria-hidden="true">
-  <div class="bg-orb orb-1"></div>
-  <div class="bg-orb orb-2"></div>
-  <div class="bg-orb orb-3"></div>
-  <div class="bg-orb orb-4"></div>
+<!-- LOGIN OVERLAY -->
+<div id="login-overlay">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="logo-xul.png" alt="XUL" />
+    </div>
+    <div class="login-title">Acceso al Workspace</div>
+    <div class="login-sub">Introduce tus credenciales para continuar</div>
+    <div class="login-field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="tu@xul.es" autocomplete="email" />
+    </div>
+    <div class="login-field">
+      <label>Contraseña</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <button class="btn-login" id="login-btn" onclick="doLogin()">Entrar</button>
+  </div>
 </div>
 
-<!-- HEADER -->
-<header class="header">
-  <div class="header-inner">
-    <div class="header-logo">
-      <img src="logo-xul.png" alt="XUL" class="xul-logo" />
+<!-- CHANGE PASSWORD MODAL -->
+<div id="pwd-modal-bg" onclick="closePwdModal(event)">
+  <div class="pwd-modal" onclick="event.stopPropagation()">
+    <div class="pwd-modal-title">Cambiar contraseña</div>
+    <div class="login-field">
+      <label>Nueva contraseña</label>
+      <input type="password" id="pwd-new" placeholder="Mínimo 6 caracteres" />
     </div>
-    <div class="header-divider"></div>
-    <span class="header-title">Workspace</span>
-    <div class="header-spacer"></div>
-    <div class="header-search">
-      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-      </svg>
-      <input type="text" id="search-input" placeholder="Buscar aplicación…" oninput="filterApps()" />
+    <div class="login-field">
+      <label>Confirmar contraseña</label>
+      <input type="password" id="pwd-confirm" placeholder="Repite la contraseña" />
     </div>
-    <button class="btn-theme" id="theme-btn" onclick="toggleTheme()" title="Cambiar tema">
-      <svg id="theme-icon-dark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
-        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
-        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-      </svg>
-      <svg id="theme-icon-light" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-      </svg>
-    </button>
-  </div>
-</header>
-
-<!-- MAIN -->
-<main class="page">
-
-  <!-- Hero -->
-  <section class="hero">
-    <h1>Aplicaciones <span> internas </span> de la agencia </h1>
-    <p>Acceso centralizado a todas las herramientas desarrolladas por XUL para la gestión y operación del equipo.</p>
-  </section>
-
-  <!-- Stats -->
-  <div class="stats" id="stats-bar">
-    <div class="stat-pill">
-      <span class="stat-dot purple"></span>
-      <span class="stat-num" id="stat-total">8</span>
-      <span class="stat-label">aplicaciones</span>
-    </div>
-    <div class="stat-pill">
-      <span class="stat-dot green"></span>
-      <span class="stat-num" id="stat-active">3</span>
-      <span class="stat-label">activas</span>
-    </div>
-    <div class="stat-pill">
-      <span class="stat-dot yellow"></span>
-      <span class="stat-num" id="stat-dev">3</span>
-      <span class="stat-label">en desarrollo</span>
-    </div>
-    <div class="stat-pill">
-      <span class="stat-dot red"></span>
-      <span class="stat-num" id="stat-beta">2</span>
-      <span class="stat-label">en beta</span>
+    <div class="pwd-msg" id="pwd-msg"></div>
+    <div class="pwd-modal-actions">
+      <button class="btn-pwd-cancel" onclick="closePwdModal()">Cancelar</button>
+      <button class="btn-pwd-save" id="pwd-save-btn" onclick="savePwd()">Guardar</button>
     </div>
   </div>
+</div>
 
-  <!-- Filters -->
-  <div class="filters" id="filters">
-    <button class="filter-btn active" data-cat="all" onclick="setFilter('all', this)">Todas</button>
-    <button class="filter-btn" data-cat="gestion" onclick="setFilter('gestion', this)">Gestión</button>
-    <button class="filter-btn" data-cat="crm" onclick="setFilter('crm', this)">CRM</button>
-    <button class="filter-btn" data-cat="analisis" onclick="setFilter('analisis', this)">Análisis</button>
-    <button class="filter-btn" data-cat="campanas" onclick="setFilter('campanas', this)">Campañas</button>
-    <button class="filter-btn" data-cat="plataforma" onclick="setFilter('plataforma', this)">Plataformas</button>
-    <div class="filters-sep"></div>
-    <button class="filter-btn" data-status="activo" onclick="setFilter('activo', this, 'status')">
-      <span style="display:inline-flex;align-items:center;gap:6px;">
-        <span style="width:7px;height:7px;border-radius:50%;background:var(--success);display:inline-block"></span>
-        Activas
-      </span>
-    </button>
-    <button class="filter-btn" data-status="dev" onclick="setFilter('dev', this, 'status')">
-      <span style="display:inline-flex;align-items:center;gap:6px;">
-        <span style="width:7px;height:7px;border-radius:50%;background:var(--warn);display:inline-block"></span>
-        En desarrollo
-      </span>
-    </button>
+<!-- APP -->
+<div id="app-wrapper">
+
+  <!-- FONDO ANIMADO -->
+  <div class="bg-canvas" aria-hidden="true">
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+    <div class="bg-orb orb-4"></div>
   </div>
 
-  <!-- Grid -->
-  <div class="grid" id="app-grid"></div>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="header-logo">
+        <img src="logo-xul.png" alt="XUL" class="xul-logo" />
+      </div>
+      <div class="header-divider"></div>
+      <span class="header-title">Workspace</span>
+      <div class="header-spacer"></div>
+      <div class="header-search">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="text" id="search-input" placeholder="Buscar aplicación…" oninput="filterApps()" />
+      </div>
+      <button class="btn-theme" id="theme-btn" onclick="toggleTheme()" title="Cambiar tema">
+        <svg id="theme-icon-dark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <svg id="theme-icon-light" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+      <div class="header-divider"></div>
+      <div class="header-user" id="header-user" style="display:none">
+        <span class="user-email" id="user-email-display"></span>
+        <button class="btn-logout" onclick="openPwdModal()" title="Cambiar contraseña" style="gap:6px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          Contraseña
+        </button>
+        <button class="btn-logout" onclick="doLogout()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Salir
+        </button>
+      </div>
+    </div>
+  </header>
 
-</main>
+  <!-- MAIN -->
+  <main class="page">
+
+    <section class="hero">
+      <h1>Aplicaciones <span>internas</span> de la agencia</h1>
+      <p>Acceso centralizado a todas las herramientas desarrolladas por XUL para la gestión y operación del equipo.</p>
+    </section>
+
+    <div class="stats" id="stats-bar">
+      <div class="stat-pill">
+        <span class="stat-dot purple"></span>
+        <span class="stat-num" id="stat-total">0</span>
+        <span class="stat-label">aplicaciones</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-dot green"></span>
+        <span class="stat-num" id="stat-active">0</span>
+        <span class="stat-label">activas</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-dot yellow"></span>
+        <span class="stat-num" id="stat-dev">0</span>
+        <span class="stat-label">en desarrollo</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-dot red"></span>
+        <span class="stat-num" id="stat-beta">0</span>
+        <span class="stat-label">en beta</span>
+      </div>
+    </div>
+
+    <div class="filters" id="filters">
+      <button class="filter-btn active" data-cat="all" onclick="setFilter('all', this)">Todas</button>
+      <button class="filter-btn" data-cat="gestion"   onclick="setFilter('gestion', this)">Gestión</button>
+      <button class="filter-btn" data-cat="crm"       onclick="setFilter('crm', this)">CRM</button>
+      <button class="filter-btn" data-cat="analisis"  onclick="setFilter('analisis', this)">Análisis</button>
+      <button class="filter-btn" data-cat="campanas"  onclick="setFilter('campanas', this)">Campañas</button>
+      <button class="filter-btn" data-cat="plataforma" onclick="setFilter('plataforma', this)">Plataformas</button>
+      <div class="filters-sep"></div>
+      <button class="filter-btn" data-status="activo" onclick="setFilter('activo', this, 'status')">
+        <span style="display:inline-flex;align-items:center;gap:6px;">
+          <span style="width:7px;height:7px;border-radius:50%;background:var(--success);display:inline-block"></span>
+          Activas
+        </span>
+      </button>
+      <button class="filter-btn" data-status="dev" onclick="setFilter('dev', this, 'status')">
+        <span style="display:inline-flex;align-items:center;gap:6px;">
+          <span style="width:7px;height:7px;border-radius:50%;background:var(--warn);display:inline-block"></span>
+          En desarrollo
+        </span>
+      </button>
+    </div>
+
+    <div class="grid" id="app-grid"></div>
+
+  </main>
+
+</div><!-- /app-wrapper -->
 
 <script>
+/* ===================================================
+   CONFIG — cambiar a true para activar el login
+=================================================== */
+const LOGIN_ACTIVE = false;
+
+/* ===================================================
+   SUPABASE
+=================================================== */
+const SUPABASE_URL  = 'https://kyaaqlumpsuwukfxltht.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt5YWFxbHVtcHN1d3VrZnhsdGh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNTgzOTEsImV4cCI6MjA5NzczNDM5MX0.vjXH9N7oEXiJq1s_L1xQtGKhBxr6qrrjhiEvVwx7OcM';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
 /* ===================================================
    APP DATA
 =================================================== */
@@ -1028,7 +1129,7 @@ const APPS = [
   {
     id: 'bcorp',
     name: 'B Corp',
-    desc: 'Cumplimiento de altos estándares de desempeño social y ambiental, transparencia pública y responsabilidad legal. Seguimiento de criterios y proceso de certificación B Corp.',
+    desc: 'Cumplimiento de altos estándares de desempeño social y ambiental, transparencia pública y responsabilidad legal.',
     icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 34" fill="none" style="width:56%;height:56%" class="icon-bcorp">
       <circle cx="14" cy="13" r="11.2" stroke="currentColor" stroke-width="2.4" class="bcorp-ring"/>
       <text x="14.5" y="19.5" text-anchor="middle" font-size="16" font-weight="900" font-family="Arial,'Helvetica Neue',sans-serif" fill="currentColor" stroke="none" class="bcorp-letter">B</text>
@@ -1046,7 +1147,7 @@ const APPS = [
   {
     id: 'giros',
     name: 'Giros',
-    desc: 'Espacio bimensual donde los proyectos compartirán aprendizajes que puedan servir al resto del equipo. Un lugar para preguntarnos juntxs qué hacemos cuando el viento cambia.',
+    desc: 'Espacio bimensual donde los proyectos compartirán aprendizajes que puedan servir al resto del equipo.',
     icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:54%;height:54%" class="icon-giros">
       <g class="giros-arrows">
         <path d="M21 12a9 9 0 0 0-9-9 9 9 0 0 0-6.36 2.64"/>
@@ -1068,9 +1169,117 @@ const APPS = [
 /* ===================================================
    STATE
 =================================================== */
-let activeFilter = 'all';
+let activeFilter     = 'all';
 let activeFilterType = 'cat';
-let searchQuery = '';
+let searchQuery      = '';
+let allowedAppIds    = null; // null = ver todas
+
+/* ===================================================
+   AUTH
+=================================================== */
+async function doLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const btn      = document.getElementById('login-btn');
+  const errEl    = document.getElementById('login-error');
+
+  errEl.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'Entrando…';
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    errEl.textContent = 'Email o contraseña incorrectos';
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+    return;
+  }
+
+  await loadApp(data.user);
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  allowedAppIds = null;
+  document.getElementById('app-wrapper').classList.remove('visible');
+  document.getElementById('login-overlay').classList.remove('hidden');
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-error').textContent = '';
+  document.getElementById('login-btn').disabled = false;
+  document.getElementById('login-btn').textContent = 'Entrar';
+}
+
+async function loadApp(user) {
+  if (user) {
+    const { data: rows } = await sb
+      .from('appcenter_user_apps')
+      .select('app_id')
+      .eq('user_id', user.id);
+
+    allowedAppIds = (rows && rows.length > 0) ? rows.map(r => r.app_id) : null;
+    document.getElementById('user-email-display').textContent = user.email;
+    document.getElementById('header-user').style.display = 'flex';
+  }
+
+  document.getElementById('login-overlay').classList.add('hidden');
+  document.getElementById('app-wrapper').classList.add('visible');
+
+  updateStats();
+  renderGrid();
+}
+
+/* ===================================================
+   CHANGE PASSWORD
+=================================================== */
+function openPwdModal() {
+  document.getElementById('pwd-new').value = '';
+  document.getElementById('pwd-confirm').value = '';
+  document.getElementById('pwd-msg').textContent = '';
+  document.getElementById('pwd-msg').className = 'pwd-msg';
+  document.getElementById('pwd-modal-bg').classList.add('open');
+}
+
+function closePwdModal(e) {
+  if (!e || e.target === document.getElementById('pwd-modal-bg')) {
+    document.getElementById('pwd-modal-bg').classList.remove('open');
+  }
+}
+
+async function savePwd() {
+  const newPwd  = document.getElementById('pwd-new').value;
+  const confirm = document.getElementById('pwd-confirm').value;
+  const msg     = document.getElementById('pwd-msg');
+  const btn     = document.getElementById('pwd-save-btn');
+
+  if (newPwd.length < 6) {
+    msg.textContent = 'La contraseña debe tener al menos 6 caracteres';
+    msg.className = 'pwd-msg error';
+    return;
+  }
+  if (newPwd !== confirm) {
+    msg.textContent = 'Las contraseñas no coinciden';
+    msg.className = 'pwd-msg error';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+
+  const { error } = await sb.auth.updateUser({ password: newPwd });
+
+  if (error) {
+    msg.textContent = 'Error al cambiar la contraseña';
+    msg.className = 'pwd-msg error';
+  } else {
+    msg.textContent = 'Contraseña actualizada correctamente';
+    msg.className = 'pwd-msg ok';
+    setTimeout(() => closePwdModal(), 1800);
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Guardar';
+}
 
 /* ===================================================
    RENDER
@@ -1080,11 +1289,14 @@ function statusLabel(s) {
   return map[s] || s;
 }
 
+function getVisibleApps() {
+  return allowedAppIds ? APPS.filter(a => allowedAppIds.includes(a.id)) : APPS;
+}
+
 function renderCard(app) {
   return `
     <div class="app-card ${app.featured ? 'featured' : ''}"
-         data-cat="${app.cat}" data-status="${app.status}"
-         data-name="${app.name.toLowerCase()}" data-desc="${app.desc.toLowerCase()}">
+         data-cat="${app.cat}" data-status="${app.status}">
       <div class="card-banner">
         <div class="card-banner-bg ${app.grad}"></div>
         <div class="card-banner-noise"></div>
@@ -1120,9 +1332,10 @@ function renderCard(app) {
 
 function renderGrid() {
   const grid = document.getElementById('app-grid');
-  const q = searchQuery.toLowerCase().trim();
+  const q    = searchQuery.toLowerCase().trim();
+  const pool = getVisibleApps();
 
-  const visible = APPS.filter(app => {
+  const visible = pool.filter(app => {
     const matchSearch = !q
       || app.name.toLowerCase().includes(q)
       || app.desc.toLowerCase().includes(q)
@@ -1130,8 +1343,9 @@ function renderGrid() {
 
     let matchFilter = true;
     if (activeFilter !== 'all') {
-      if (activeFilterType === 'cat') matchFilter = app.cat === activeFilter;
-      else matchFilter = app.status === activeFilter;
+      matchFilter = activeFilterType === 'cat'
+        ? app.cat === activeFilter
+        : app.status === activeFilter;
     }
 
     return matchSearch && matchFilter;
@@ -1153,13 +1367,12 @@ function renderGrid() {
 }
 
 /* ===================================================
-   FILTERS
+   FILTERS & SEARCH
 =================================================== */
 function setFilter(value, btn, type = 'cat') {
-  // deactivate all
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  activeFilter = value;
+  activeFilter     = value;
   activeFilterType = type;
   renderGrid();
 }
@@ -1174,7 +1387,7 @@ function filterApps() {
 =================================================== */
 function toggleTheme() {
   const isLight = document.body.classList.toggle('light');
-  document.getElementById('theme-icon-dark').style.display = isLight ? 'none' : 'block';
+  document.getElementById('theme-icon-dark').style.display  = isLight ? 'none'  : 'block';
   document.getElementById('theme-icon-light').style.display = isLight ? 'block' : 'none';
   localStorage.setItem('xul-theme', isLight ? 'light' : 'dark');
 }
@@ -1183,23 +1396,43 @@ function toggleTheme() {
    STATS
 =================================================== */
 function updateStats() {
-  document.getElementById('stat-total').textContent  = APPS.length;
-  document.getElementById('stat-active').textContent = APPS.filter(a => a.status === 'activo').length;
-  document.getElementById('stat-dev').textContent    = APPS.filter(a => a.status === 'dev').length;
-  document.getElementById('stat-beta').textContent   = APPS.filter(a => a.status === 'beta').length;
+  const pool = getVisibleApps();
+  document.getElementById('stat-total').textContent  = pool.length;
+  document.getElementById('stat-active').textContent = pool.filter(a => a.status === 'activo').length;
+  document.getElementById('stat-dev').textContent    = pool.filter(a => a.status === 'dev').length;
+  document.getElementById('stat-beta').textContent   = pool.filter(a => a.status === 'beta').length;
 }
 
 /* ===================================================
    INIT
 =================================================== */
-(function init() {
+(async function init() {
+  // Restore theme
   if (localStorage.getItem('xul-theme') === 'light') {
     document.body.classList.add('light');
-    document.getElementById('theme-icon-dark').style.display = 'none';
+    document.getElementById('theme-icon-dark').style.display  = 'none';
     document.getElementById('theme-icon-light').style.display = 'block';
   }
-  updateStats();
-  renderGrid();
+
+  if (!LOGIN_ACTIVE) {
+    // Login desactivado: mostrar todas las apps directamente
+    await loadApp(null);
+    return;
+  }
+
+  // Allow Enter key on login form
+  document.getElementById('login-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+  document.getElementById('login-email').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('login-password').focus();
+  });
+
+  // Check existing session
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    await loadApp(session.user);
+  }
 })();
 </script>
 </body>
