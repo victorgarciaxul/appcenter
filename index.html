@@ -793,6 +793,30 @@ body.light .header-logo img.xul-logo { filter: invert(1); }
 }
 #pwd-modal-bg.open { display: flex; }
 
+#mfa-modal-bg {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+#mfa-modal-bg.open { display: flex; }
+
+#mfa-login-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
 .pwd-modal {
   width: 100%;
   max-width: 360px;
@@ -931,10 +955,13 @@ body.light .header-logo img.xul-logo { filter: invert(1); }
 <!-- CHANGE PASSWORD MODAL -->
 <div id="pwd-modal-bg" onclick="closePwdModal(event)">
   <div class="pwd-modal" onclick="event.stopPropagation()">
-    <div class="pwd-modal-title">Cambiar contraseña</div>
+    <div class="pwd-modal-title" id="pwd-modal-title">Cambiar contraseña</div>
+    <p id="pwd-modal-subtitle" style="display:none;font-size:13px;color:var(--text-muted);margin:-8px 0 16px;line-height:1.5;">
+      Es tu primer acceso. Elige una contraseña personal para continuar.
+    </p>
     <div class="login-field">
       <label>Nueva contraseña</label>
-      <input type="password" id="pwd-new" placeholder="Mínimo 6 caracteres" />
+      <input type="password" id="pwd-new" placeholder="Mínimo 8 caracteres" />
     </div>
     <div class="login-field">
       <label>Confirmar contraseña</label>
@@ -942,9 +969,64 @@ body.light .header-logo img.xul-logo { filter: invert(1); }
     </div>
     <div class="pwd-msg" id="pwd-msg"></div>
     <div class="pwd-modal-actions">
-      <button class="btn-pwd-cancel" onclick="closePwdModal()">Cancelar</button>
+      <button class="btn-pwd-cancel" id="pwd-cancel-btn" onclick="closePwdModal()">Cancelar</button>
       <button class="btn-pwd-save" id="pwd-save-btn" onclick="savePwd()">Guardar</button>
     </div>
+  </div>
+</div>
+
+<!-- 2FA MODAL -->
+<div id="mfa-modal-bg" onclick="closeMfaModal(event)">
+  <div class="pwd-modal" onclick="event.stopPropagation()" style="max-width:420px">
+    <div class="pwd-modal-title" id="mfa-modal-title">Verificación en dos pasos</div>
+    <div id="mfa-step-status" style="font-size:13px;color:var(--text-muted);margin:-8px 0 16px;line-height:1.5;"></div>
+
+    <!-- Estado: no activado -->
+    <div id="mfa-off-view">
+      <p style="font-size:13px;color:var(--text-muted);margin:0 0 20px;line-height:1.6;">
+        Añade una capa extra de seguridad. Necesitarás una app como <strong style="color:var(--text)">Google Authenticator</strong> o <strong style="color:var(--text)">Authy</strong>.
+      </p>
+      <button class="btn-pwd-save" style="width:100%" onclick="startMfaEnroll()">Activar 2FA</button>
+    </div>
+
+    <!-- Estado: escanear QR -->
+    <div id="mfa-enroll-view" style="display:none;text-align:center">
+      <p style="font-size:13px;color:var(--text-muted);margin:0 0 16px;">Escanea este código con tu app de autenticación:</p>
+      <img id="mfa-qr-img" src="" alt="QR 2FA" style="width:180px;height:180px;border-radius:12px;margin-bottom:16px;background:#fff;padding:8px" />
+      <p style="font-size:11px;color:var(--text-muted);margin:0 0 16px;">¿No puedes escanear? Introduce este código manualmente:<br>
+        <code id="mfa-secret" style="font-size:12px;color:var(--text);letter-spacing:.1em;word-break:break-all"></code>
+      </p>
+      <div class="login-field" style="text-align:left">
+        <label>Código de verificación</label>
+        <input type="text" id="mfa-totp-code" placeholder="000000" maxlength="6" inputmode="numeric"
+          style="letter-spacing:.3em;font-size:20px;text-align:center" />
+      </div>
+      <div class="pwd-msg" id="mfa-msg"></div>
+      <div class="pwd-modal-actions">
+        <button class="btn-pwd-cancel" onclick="closeMfaModal()">Cancelar</button>
+        <button class="btn-pwd-save" id="mfa-verify-btn" onclick="verifyMfaEnroll()">Verificar y activar</button>
+      </div>
+    </div>
+
+    <!-- Estado: ya activado -->
+    <div id="mfa-on-view" style="display:none">
+      <p style="font-size:13px;color:var(--text-muted);margin:0 0 20px;line-height:1.6;">
+        El 2FA está <strong style="color:#22c55e">activo</strong> en tu cuenta. Cada vez que inicies sesión necesitarás el código de tu app.
+      </p>
+      <button class="btn-pwd-cancel" style="width:100%;border-color:#ef4444;color:#ef4444" onclick="disableMfa()">Desactivar 2FA</button>
+    </div>
+  </div>
+</div>
+
+<!-- MFA LOGIN MODAL (cuando el usuario ya tiene 2FA) -->
+<div id="mfa-login-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:none;align-items:center;justify-content:center">
+  <div class="pwd-modal" onclick="event.stopPropagation()" style="max-width:360px;text-align:center">
+    <div class="pwd-modal-title">Verificación en dos pasos</div>
+    <p style="font-size:13px;color:var(--text-muted);margin:-8px 0 20px">Introduce el código de tu app de autenticación</p>
+    <input type="text" id="mfa-login-code" placeholder="000000" maxlength="6" inputmode="numeric"
+      style="width:100%;padding:14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface-2);color:var(--text);font-size:24px;letter-spacing:.4em;text-align:center;box-sizing:border-box;margin-bottom:12px" />
+    <div class="pwd-msg" id="mfa-login-msg"></div>
+    <button class="btn-pwd-save" style="width:100%" onclick="submitMfaLogin()">Confirmar</button>
   </div>
 </div>
 
@@ -1000,6 +1082,12 @@ body.light .header-logo img.xul-logo { filter: invert(1); }
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
             </svg>
             Cambiar contraseña
+          </button>
+          <button class="dropdown-item" onclick="openMfaModal(); closeDropdown()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 12h.01M8 12h.01M16 12h.01"/>
+            </svg>
+            Verificación en dos pasos
           </button>
           <button class="dropdown-item danger" onclick="doLogout()">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1079,6 +1167,7 @@ body.light .header-logo img.xul-logo { filter: invert(1); }
 =================================================== */
 const LOGIN_ACTIVE = true;
 
+
 /* ===================================================
    SUPABASE
 =================================================== */
@@ -1093,6 +1182,7 @@ const APPS = [
   {
     id: 'auditoria',
     name: 'Xul Tech',
+    sso: true,
     desc: 'Análisis integral del rendimiento del equipo. Métricas de cuentas, KPIs, seguimiento de actividad y reportes de productividad.',
     icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 152 46" fill="none" style="width:80%;height:80%;color:inherit"><path fill-rule="evenodd" clip-rule="evenodd" d="M69.0559 2.79651L62.8476 12.0021L56.0725 22.0445L70.53 43.5242H54.3149L47.5397 32.5891L40.7078 43.5242H24.8046L39.2621 22.1561L25.4282 1.51331H36.2572C40.2259 1.51331 42.7205 3.15915 43.8545 5.11185L47.7948 11.5278L51.877 4.94447C53.0676 3.07546 55.5339 1.51331 59.3892 1.51331H69.9346L69.0559 2.79651ZM96.7235 7.59456V24.8062C96.7235 27.3726 96.0999 29.1858 94.8809 30.3016C93.6619 31.3896 92.0744 31.9475 90.1184 31.9475C88.1624 31.9475 86.6316 31.3617 85.3843 30.19C84.137 29.0184 83.5133 27.1215 83.5133 24.5272V1.51331H77.0216L68.9991 13.4526V24.6667C68.9991 28.1537 69.5094 31.1385 70.5016 33.6212C71.4938 36.1039 72.9112 38.1403 74.7254 39.7304C76.5681 41.3204 78.7509 42.492 81.3305 43.2452C83.9102 43.9705 86.8017 44.361 89.9483 44.361C93.095 44.361 96.0148 43.9984 98.6512 43.2452C101.288 42.492 103.499 41.3483 105.37 39.7304C107.212 38.1403 108.658 36.076 109.679 33.5375C110.699 31.0269 111.209 27.9584 111.209 24.3599V1.51331H105.001C99.4166 1.51331 96.7235 4.83289 96.7235 7.59456ZM151.605 31.529H131.79V1.51331H125.582C119.969 1.51331 117.276 4.83289 117.276 7.59456V43.5242H143.554L151.605 31.529ZM23.6424 22.1282C19.9288 22.1282 17.5193 23.5788 16.3003 25.3362L4.05396 43.5242H11.226L25.6268 22.1282H23.6708H23.6424ZM16.4985 11.4163H18.4546V11.4442L7.17205 28.2095H0L9.15641 14.6243C10.3754 12.8669 12.785 11.4163 16.4985 11.4163Z" fill="currentColor"/></svg>`,
     tags: ['Equipo', 'KPIs', 'Reportes'],
@@ -1106,6 +1196,7 @@ const APPS = [
   {
     id: 'DeepTalk',
     name: 'DeepTalk',
+    sso: true,
     desc: 'Dashboard de monitoreo de interacciones y análisis de conversaciones. Integración con workflows de atención al cliente.',
     icon: '👂',
     tags: ['Monitor', 'Dashboard', 'Atención'],
@@ -1132,6 +1223,7 @@ const APPS = [
   {
     id: 'crm-xul',
     name: 'CRM XUL',
+    sso: true,
     desc: 'Gestión de clientes, contactos y relaciones comerciales. Pipeline de ventas y seguimiento de oportunidades de negocio.',
     icon: '🤝',
     tags: ['Clientes', 'Ventas', 'Pipeline'],
@@ -1145,6 +1237,7 @@ const APPS = [
   {
     id: 'mytrack',
     name: 'MyTrack',
+    sso: true,
     desc: 'Gestión y seguimiento de tiempos por proyecto, cliente y tarea. Registra, analiza y exporta el tiempo dedicado a cada actividad del equipo.',
     icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:56%;height:56%" class="icon-clock"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5" class="clock-hands"/><path d="M9 2h6"/><path d="M12 2v3"/></svg>`,
     tags: ['Tiempos', 'Proyectos', 'Productividad'],
@@ -1158,6 +1251,7 @@ const APPS = [
   {
     id: 'ecofin',
     name: 'EcoFin',
+    sso: true,
     desc: 'Control económico de proyectos y proyección de carga de trabajo del equipo. Presupuestos, rentabilidad y distribución de recursos en tiempo real.',
     icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:56%;height:56%" class="icon-ecofin">
       <rect x="2"  y="14" width="4" height="7" rx="1" class="bar bar-1"/>
@@ -1177,6 +1271,7 @@ const APPS = [
   {
     id: 'bcorp',
     name: 'B Corp',
+    sso: true,
     desc: 'Cumplimiento de altos estándares de desempeño social y ambiental, transparencia pública y responsabilidad legal.',
     icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 34" fill="none" style="width:56%;height:56%" class="icon-bcorp">
       <circle cx="14" cy="13" r="11.2" stroke="currentColor" stroke-width="2.4" class="bcorp-ring"/>
@@ -1195,6 +1290,7 @@ const APPS = [
   {
     id: 'giros',
     name: 'Giros',
+    sso: true,
     desc: 'Espacio bimensual donde los proyectos compartirán aprendizajes que puedan servir al resto del equipo.',
     icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:54%;height:54%" class="icon-giros">
       <g class="giros-arrows">
@@ -1244,6 +1340,26 @@ async function doLogin() {
     return;
   }
 
+  // Comprobar si el usuario tiene 2FA activo (AAL2 requerido)
+  const { data: aalData } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel !== 'aal2') {
+    // Guardar factorId para verificar después
+    const { data: factorsData } = await sb.auth.mfa.listFactors();
+    window._mfaLoginFactorId = factorsData?.totp?.[0]?.id;
+    showMfaLoginModal();
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+    return;
+  }
+
+  // Comprobar si debe cambiar contraseña en primer acceso
+  if (data.user?.user_metadata?.must_change_password) {
+    openForcedPwdModal();
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+    return;
+  }
+
   await loadApp(data.user);
 }
 
@@ -1279,6 +1395,16 @@ async function loadApp(user) {
 }
 
 /* ===================================================
+   SSO LAUNCH
+=================================================== */
+async function ssoLaunch(url) {
+  const { data: { session } } = await sb.auth.getSession()
+  const email = session?.user?.email
+  const dest  = email ? `${url}?sso_email=${encodeURIComponent(email)}` : url
+  window.open(dest, '_blank')
+}
+
+/* ===================================================
    DROPDOWN
 =================================================== */
 function toggleDropdown() {
@@ -1303,27 +1429,43 @@ function openPwdModal() {
   document.getElementById('pwd-confirm').value = '';
   document.getElementById('pwd-msg').textContent = '';
   document.getElementById('pwd-msg').className = 'pwd-msg';
+  document.getElementById('pwd-modal-title').textContent = 'Cambiar contraseña';
+  document.getElementById('pwd-modal-subtitle').style.display = 'none';
+  document.getElementById('pwd-cancel-btn').style.display = '';
   document.getElementById('pwd-modal-bg').classList.add('open');
 }
 
+function openForcedPwdModal() {
+  document.getElementById('pwd-new').value = '';
+  document.getElementById('pwd-confirm').value = '';
+  document.getElementById('pwd-msg').textContent = '';
+  document.getElementById('pwd-msg').className = 'pwd-msg';
+  document.getElementById('pwd-modal-title').textContent = 'Elige tu contraseña';
+  document.getElementById('pwd-modal-subtitle').style.display = 'block';
+  document.getElementById('pwd-cancel-btn').style.display = 'none'; // no se puede cancelar
+  document.getElementById('pwd-modal-bg').classList.add('open');
+  document.getElementById('pwd-modal-bg').dataset.forced = 'true';
+}
+
 function closePwdModal(e) {
-  if (!e || e.target === document.getElementById('pwd-modal-bg')) {
-    document.getElementById('pwd-modal-bg').classList.remove('open');
-  }
+  const bg = document.getElementById('pwd-modal-bg');
+  if (bg.dataset.forced === 'true') return; // no se puede cerrar si es forzado
+  if (!e || e.target === bg) bg.classList.remove('open');
 }
 
 async function savePwd() {
-  const newPwd  = document.getElementById('pwd-new').value;
-  const confirm = document.getElementById('pwd-confirm').value;
-  const msg     = document.getElementById('pwd-msg');
-  const btn     = document.getElementById('pwd-save-btn');
+  const newPwd     = document.getElementById('pwd-new').value;
+  const confirmVal = document.getElementById('pwd-confirm').value;
+  const msg        = document.getElementById('pwd-msg');
+  const btn        = document.getElementById('pwd-save-btn');
+  const isForced   = document.getElementById('pwd-modal-bg').dataset.forced === 'true';
 
-  if (newPwd.length < 6) {
-    msg.textContent = 'La contraseña debe tener al menos 6 caracteres';
+  if (newPwd.length < 8) {
+    msg.textContent = 'La contraseña debe tener al menos 8 caracteres';
     msg.className = 'pwd-msg error';
     return;
   }
-  if (newPwd !== confirm) {
+  if (newPwd !== confirmVal) {
     msg.textContent = 'Las contraseñas no coinciden';
     msg.className = 'pwd-msg error';
     return;
@@ -1332,20 +1474,149 @@ async function savePwd() {
   btn.disabled = true;
   btn.textContent = 'Guardando…';
 
-  const { error } = await sb.auth.updateUser({ password: newPwd });
+  // Si es primer acceso, limpiamos el flag must_change_password
+  const updatePayload = isForced
+    ? { password: newPwd, data: { must_change_password: false } }
+    : { password: newPwd };
+
+  const { error } = await sb.auth.updateUser(updatePayload);
 
   if (error) {
     msg.textContent = error.message || 'Error al cambiar la contraseña';
     msg.className = 'pwd-msg error';
-    console.error('updateUser error:', error);
   } else {
-    msg.textContent = 'Contraseña actualizada correctamente';
+    msg.textContent = '¡Contraseña guardada! Entrando…';
     msg.className = 'pwd-msg ok';
-    setTimeout(() => closePwdModal(), 1800);
+    if (isForced) {
+      delete document.getElementById('pwd-modal-bg').dataset.forced;
+      setTimeout(async () => {
+        document.getElementById('pwd-modal-bg').classList.remove('open');
+        const { data: { user } } = await sb.auth.getUser();
+        await loadApp(user);
+      }, 1500);
+    } else {
+      setTimeout(() => closePwdModal(), 1800);
+    }
   }
 
   btn.disabled = false;
   btn.textContent = 'Guardar';
+}
+
+/* ===================================================
+   2FA
+=================================================== */
+let _mfaFactorId = null;
+
+async function openMfaModal() {
+  document.getElementById('mfa-msg') && (document.getElementById('mfa-msg').textContent = '');
+  document.getElementById('mfa-off-view').style.display    = 'none';
+  document.getElementById('mfa-enroll-view').style.display = 'none';
+  document.getElementById('mfa-on-view').style.display     = 'none';
+  document.getElementById('mfa-step-status').textContent   = 'Comprobando…';
+  document.getElementById('mfa-modal-bg').classList.add('open');
+
+  const { data } = await sb.auth.mfa.listFactors();
+  const active   = data?.totp?.find(f => f.status === 'verified');
+
+  document.getElementById('mfa-step-status').textContent = '';
+  if (active) {
+    _mfaFactorId = active.id;
+    document.getElementById('mfa-on-view').style.display = 'block';
+  } else {
+    document.getElementById('mfa-off-view').style.display = 'block';
+  }
+}
+
+function closeMfaModal(e) {
+  const bg = document.getElementById('mfa-modal-bg');
+  if (!e || e.target === bg) {
+    bg.classList.remove('open');
+    _mfaFactorId = null;
+  }
+}
+
+async function startMfaEnroll() {
+  document.getElementById('mfa-off-view').style.display    = 'none';
+  document.getElementById('mfa-step-status').textContent   = 'Generando QR…';
+
+  const { data, error } = await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'AppCenter' });
+  if (error) {
+    document.getElementById('mfa-step-status').textContent = error.message;
+    return;
+  }
+
+  _mfaFactorId = data.id;
+  document.getElementById('mfa-qr-img').src       = data.totp.qr_code;
+  document.getElementById('mfa-secret').textContent = data.totp.secret;
+  document.getElementById('mfa-totp-code').value   = '';
+  document.getElementById('mfa-msg').textContent   = '';
+  document.getElementById('mfa-step-status').textContent = '';
+  document.getElementById('mfa-enroll-view').style.display = 'block';
+}
+
+async function verifyMfaEnroll() {
+  const code = document.getElementById('mfa-totp-code').value.trim();
+  const msg  = document.getElementById('mfa-msg');
+  const btn  = document.getElementById('mfa-verify-btn');
+
+  if (code.length !== 6) { msg.textContent = 'El código tiene 6 dígitos'; msg.className = 'pwd-msg error'; return; }
+
+  btn.disabled = true; btn.textContent = 'Verificando…';
+
+  const { data: challenge } = await sb.auth.mfa.challenge({ factorId: _mfaFactorId });
+  const { error } = await sb.auth.mfa.verify({ factorId: _mfaFactorId, challengeId: challenge.id, code });
+
+  if (error) {
+    msg.textContent = 'Código incorrecto. Inténtalo de nuevo.';
+    msg.className = 'pwd-msg error';
+  } else {
+    msg.textContent = '¡2FA activado correctamente!';
+    msg.className = 'pwd-msg ok';
+    setTimeout(() => closeMfaModal(), 1800);
+  }
+
+  btn.disabled = false; btn.textContent = 'Verificar y activar';
+}
+
+async function disableMfa() {
+  if (!confirm('¿Seguro que quieres desactivar el 2FA?')) return;
+  const { error } = await sb.auth.mfa.unenroll({ factorId: _mfaFactorId });
+  if (error) { alert(error.message); return; }
+  alert('2FA desactivado.');
+  closeMfaModal();
+}
+
+function showMfaLoginModal() {
+  const bg = document.getElementById('mfa-login-bg');
+  bg.style.display = 'flex';
+  document.getElementById('mfa-login-code').value = '';
+  document.getElementById('mfa-login-msg').textContent = '';
+  setTimeout(() => document.getElementById('mfa-login-code').focus(), 100);
+}
+
+async function submitMfaLogin() {
+  const code = document.getElementById('mfa-login-code').value.trim();
+  const msg  = document.getElementById('mfa-login-msg');
+  if (code.length !== 6) { msg.textContent = 'Introduce los 6 dígitos'; msg.className = 'pwd-msg error'; return; }
+
+  const { data: challenge } = await sb.auth.mfa.challenge({ factorId: window._mfaLoginFactorId });
+  const { error } = await sb.auth.mfa.verify({ factorId: window._mfaLoginFactorId, challengeId: challenge.id, code });
+
+  if (error) {
+    msg.textContent = 'Código incorrecto';
+    msg.className = 'pwd-msg error';
+    return;
+  }
+
+  document.getElementById('mfa-login-bg').style.display = 'none';
+  const { data: { user } } = await sb.auth.getUser();
+
+  if (user?.user_metadata?.must_change_password) {
+    openForcedPwdModal();
+    return;
+  }
+  await loadApp(user);
 }
 
 /* ===================================================
@@ -1384,7 +1655,7 @@ function renderCard(app) {
         <span class="card-meta">${app.meta}</span>
         <a href="${app.url}"
            class="btn-launch ${app.status === 'paused' ? 'disabled' : ''}"
-           ${app.status !== 'paused' ? 'target="_blank"' : ''}>
+           ${app.status !== 'paused' ? `target="_blank" ${app.sso ? `onclick="event.preventDefault(); ssoLaunch('${app.url}')"` : ''}` : ''}>
           Abrir
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
