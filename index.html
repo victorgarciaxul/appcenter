@@ -1942,16 +1942,26 @@ async function verifyMfaEnroll() {
 
   btn.disabled = true; btn.textContent = 'Verificando…';
 
-  const { data: challenge } = await sb.auth.mfa.challenge({ factorId: _mfaFactorId });
-  const { error } = await sb.auth.mfa.verify({ factorId: _mfaFactorId, challengeId: challenge.id, code });
-
-  if (error) {
-    msg.textContent = 'Código incorrecto. Inténtalo de nuevo.';
+  try {
+    const t = (ms) => new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms));
+    const { data: challenge, error: ce } = await Promise.race([
+      sb.auth.mfa.challenge({ factorId: _mfaFactorId }), t(8000)
+    ]);
+    if (ce) throw ce;
+    const { error } = await Promise.race([
+      sb.auth.mfa.verify({ factorId: _mfaFactorId, challengeId: challenge.id, code }), t(8000)
+    ]);
+    if (error) {
+      msg.textContent = 'Código incorrecto. Inténtalo de nuevo.';
+      msg.className = 'pwd-msg error';
+    } else {
+      msg.textContent = '¡2FA activado correctamente!';
+      msg.className = 'pwd-msg ok';
+      setTimeout(() => closeMfaModal(), 1800);
+    }
+  } catch (e) {
+    msg.textContent = e.message === 'timeout' ? 'Tiempo agotado. Inténtalo de nuevo.' : 'Error. Inténtalo de nuevo.';
     msg.className = 'pwd-msg error';
-  } else {
-    msg.textContent = '¡2FA activado correctamente!';
-    msg.className = 'pwd-msg ok';
-    setTimeout(() => closeMfaModal(), 1800);
   }
 
   btn.disabled = false; btn.textContent = 'Verificar y activar';
@@ -1959,10 +1969,15 @@ async function verifyMfaEnroll() {
 
 async function disableMfa() {
   if (!confirm('¿Seguro que quieres desactivar el 2FA?')) return;
-  const { error } = await sb.auth.mfa.unenroll({ factorId: _mfaFactorId });
-  if (error) { alert(error.message); return; }
-  alert('2FA desactivado.');
-  closeMfaModal();
+  try {
+    const t = (ms) => new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms));
+    const { error } = await Promise.race([sb.auth.mfa.unenroll({ factorId: _mfaFactorId }), t(8000)]);
+    if (error) { alert(error.message); return; }
+    alert('2FA desactivado.');
+    closeMfaModal();
+  } catch (e) {
+    alert(e.message === 'timeout' ? 'Tiempo agotado. Inténtalo de nuevo.' : 'Error al desactivar.');
+  }
 }
 
 function showMfaLoginModal() {
@@ -1978,23 +1993,33 @@ async function submitMfaLogin() {
   const msg  = document.getElementById('mfa-login-msg');
   if (code.length !== 6) { msg.textContent = 'Introduce los 6 dígitos'; msg.className = 'pwd-msg error'; return; }
 
-  const { data: challenge } = await sb.auth.mfa.challenge({ factorId: window._mfaLoginFactorId });
-  const { error } = await sb.auth.mfa.verify({ factorId: window._mfaLoginFactorId, challengeId: challenge.id, code });
+  const btn = document.querySelector('#mfa-login-bg button[onclick="submitMfaLogin()"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Verificando…'; }
 
-  if (error) {
-    msg.textContent = 'Código incorrecto';
+  try {
+    const t = (ms) => new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms));
+    const { data: challenge, error: ce } = await Promise.race([
+      sb.auth.mfa.challenge({ factorId: window._mfaLoginFactorId }), t(8000)
+    ]);
+    if (ce) throw ce;
+    const { error } = await Promise.race([
+      sb.auth.mfa.verify({ factorId: window._mfaLoginFactorId, challengeId: challenge.id, code }), t(8000)
+    ]);
+    if (error) {
+      msg.textContent = 'Código incorrecto';
+      msg.className = 'pwd-msg error';
+      if (btn) { btn.disabled = false; btn.textContent = 'Verificar'; }
+      return;
+    }
+    document.getElementById('mfa-login-bg').style.display = 'none';
+    const { data: { user } } = await Promise.race([sb.auth.getUser(), t(8000)]);
+    if (user?.user_metadata?.must_change_password) { openForcedPwdModal(); return; }
+    await loadApp(user);
+  } catch (e) {
+    msg.textContent = e.message === 'timeout' ? 'Tiempo agotado. Inténtalo de nuevo.' : 'Error. Inténtalo de nuevo.';
     msg.className = 'pwd-msg error';
-    return;
+    if (btn) { btn.disabled = false; btn.textContent = 'Verificar'; }
   }
-
-  document.getElementById('mfa-login-bg').style.display = 'none';
-  const { data: { user } } = await sb.auth.getUser();
-
-  if (user?.user_metadata?.must_change_password) {
-    openForcedPwdModal();
-    return;
-  }
-  await loadApp(user);
 }
 
 /* ===================================================
