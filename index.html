@@ -1335,8 +1335,9 @@ async function savePwd() {
   const { error } = await sb.auth.updateUser({ password: newPwd });
 
   if (error) {
-    msg.textContent = 'Error al cambiar la contraseña';
+    msg.textContent = error.message || 'Error al cambiar la contraseña';
     msg.className = 'pwd-msg error';
+    console.error('updateUser error:', error);
   } else {
     msg.textContent = 'Contraseña actualizada correctamente';
     msg.className = 'pwd-msg ok';
