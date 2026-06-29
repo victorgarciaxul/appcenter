@@ -1870,15 +1870,21 @@ async function openMfaModal() {
   document.getElementById('mfa-step-status').textContent   = 'Comprobando…';
   document.getElementById('mfa-modal-bg').classList.add('open');
 
-  const { data } = await sb.auth.mfa.listFactors();
-  const active   = data?.totp?.find(f => f.status === 'verified');
-
-  document.getElementById('mfa-step-status').textContent = '';
-  if (active) {
-    _mfaFactorId = active.id;
-    document.getElementById('mfa-on-view').style.display = 'block';
-  } else {
-    document.getElementById('mfa-off-view').style.display = 'block';
+  try {
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000));
+    const { data } = await Promise.race([sb.auth.mfa.listFactors(), timeout]);
+    const active   = data?.totp?.find(f => f.status === 'verified');
+    document.getElementById('mfa-step-status').textContent = '';
+    if (active) {
+      _mfaFactorId = active.id;
+      document.getElementById('mfa-on-view').style.display = 'block';
+    } else {
+      document.getElementById('mfa-off-view').style.display = 'block';
+    }
+  } catch (e) {
+    document.getElementById('mfa-step-status').textContent = e.message === 'timeout'
+      ? 'La conexión tardó demasiado. Cierra y vuelve a intentarlo.'
+      : 'Error al conectar. Inténtalo de nuevo.';
   }
 }
 
@@ -1894,25 +1900,37 @@ async function startMfaEnroll() {
   document.getElementById('mfa-off-view').style.display    = 'none';
   document.getElementById('mfa-step-status').textContent   = 'Generando QR…';
 
-  const currentUser = (await sb.auth.getUser()).data?.user;
-  const userEmail   = currentUser?.email ?? '';
-  const { data, error } = await sb.auth.mfa.enroll({
-    factorType:   'totp',
-    issuer:       'AppCenter XUL',
-    friendlyName: userEmail,
-  });
-  if (error) {
-    document.getElementById('mfa-step-status').textContent = error.message;
-    return;
-  }
+  try {
+    const tout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
 
-  _mfaFactorId = data.id;
-  document.getElementById('mfa-qr-img').src       = data.totp.qr_code;
-  document.getElementById('mfa-secret').textContent = data.totp.secret;
-  document.getElementById('mfa-totp-code').value   = '';
-  document.getElementById('mfa-msg').textContent   = '';
-  document.getElementById('mfa-step-status').textContent = '';
-  document.getElementById('mfa-enroll-view').style.display = 'block';
+    const currentUser = (await Promise.race([sb.auth.getUser(), tout(8000)])).data?.user;
+    const userEmail   = currentUser?.email ?? '';
+
+    const enrollResult = await Promise.race([
+      sb.auth.mfa.enroll({ factorType: 'totp', issuer: 'AppCenter XUL', friendlyName: userEmail }),
+      tout(10000),
+    ]);
+
+    if (enrollResult.error) {
+      document.getElementById('mfa-step-status').textContent = enrollResult.error.message;
+      document.getElementById('mfa-off-view').style.display = 'block';
+      return;
+    }
+
+    const data = enrollResult.data;
+    _mfaFactorId = data.id;
+    document.getElementById('mfa-qr-img').src        = data.totp.qr_code;
+    document.getElementById('mfa-secret').textContent = data.totp.secret;
+    document.getElementById('mfa-totp-code').value    = '';
+    document.getElementById('mfa-msg').textContent    = '';
+    document.getElementById('mfa-step-status').textContent = '';
+    document.getElementById('mfa-enroll-view').style.display = 'block';
+  } catch (e) {
+    document.getElementById('mfa-step-status').textContent = e.message === 'timeout'
+      ? 'La conexión tardó demasiado. Cierra y vuelve a intentarlo.'
+      : 'Error al generar el QR. Inténtalo de nuevo.';
+    document.getElementById('mfa-off-view').style.display = 'block';
+  }
 }
 
 async function verifyMfaEnroll() {
