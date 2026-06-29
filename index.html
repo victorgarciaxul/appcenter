@@ -1473,30 +1473,43 @@ async function savePwd() {
 
   btn.disabled = true;
   btn.textContent = 'Guardando…';
+  msg.textContent = '';
+  msg.className = 'pwd-msg';
 
-  // Si es primer acceso, limpiamos el flag must_change_password
-  const updatePayload = isForced
-    ? { password: newPwd, data: { must_change_password: false } }
-    : { password: newPwd };
+  try {
+    const updatePayload = isForced
+      ? { password: newPwd, data: { must_change_password: false } }
+      : { password: newPwd };
 
-  const { error } = await sb.auth.updateUser(updatePayload);
+    // Timeout de 12s para que no se quede pillado
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 12000)
+    );
+    const update = sb.auth.updateUser(updatePayload);
+    const { error } = await Promise.race([update, timeout]);
 
-  if (error) {
-    msg.textContent = error.message || 'Error al cambiar la contraseña';
-    msg.className = 'pwd-msg error';
-  } else {
-    msg.textContent = '¡Contraseña guardada! Entrando…';
-    msg.className = 'pwd-msg ok';
-    if (isForced) {
-      delete document.getElementById('pwd-modal-bg').dataset.forced;
-      setTimeout(async () => {
-        document.getElementById('pwd-modal-bg').classList.remove('open');
-        const { data: { user } } = await sb.auth.getUser();
-        await loadApp(user);
-      }, 1500);
+    if (error) {
+      msg.textContent = error.message || 'Error al cambiar la contraseña';
+      msg.className = 'pwd-msg error';
     } else {
-      setTimeout(() => closePwdModal(), 1800);
+      msg.textContent = isForced ? '¡Contraseña guardada! Entrando…' : 'Contraseña actualizada correctamente';
+      msg.className = 'pwd-msg ok';
+      if (isForced) {
+        delete document.getElementById('pwd-modal-bg').dataset.forced;
+        setTimeout(async () => {
+          document.getElementById('pwd-modal-bg').classList.remove('open');
+          const { data: { user } } = await sb.auth.getUser();
+          await loadApp(user);
+        }, 1500);
+      } else {
+        setTimeout(() => closePwdModal(), 1800);
+      }
     }
+  } catch (e) {
+    msg.textContent = e.message === 'timeout'
+      ? 'La conexión tardó demasiado. Inténtalo de nuevo.'
+      : 'Error inesperado. Inténtalo de nuevo.';
+    msg.className = 'pwd-msg error';
   }
 
   btn.disabled = false;
