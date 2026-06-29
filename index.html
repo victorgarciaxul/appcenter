@@ -1755,16 +1755,24 @@ async function saveResetPassword() {
   if (newPwd !== confirmPwd) { msgEl.textContent = 'Las contraseñas no coinciden.'; msgEl.className = 'pwd-msg error'; return; }
   btn.disabled = true;
   btn.textContent = 'Guardando…';
-  const { error } = await sb.auth.updateUser({ password: newPwd });
-  if (error) {
-    msgEl.textContent = 'Error al guardar. Inténtalo de nuevo.';
+  try {
+    const t = (ms) => new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms));
+    const { error } = await Promise.race([sb.auth.updateUser({ password: newPwd }), t(12000)]);
+    if (error) {
+      msgEl.textContent = 'Error al guardar. Inténtalo de nuevo.';
+      msgEl.className = 'pwd-msg error';
+      btn.disabled = false;
+      btn.textContent = 'Guardar contraseña';
+      return;
+    }
+    document.getElementById('reset-modal-bg').style.display = 'none';
+    window.location.reload();
+  } catch (e) {
+    msgEl.textContent = e.message === 'timeout' ? 'La conexión tardó demasiado. Inténtalo de nuevo.' : 'Error inesperado. Inténtalo de nuevo.';
     msgEl.className = 'pwd-msg error';
     btn.disabled = false;
     btn.textContent = 'Guardar contraseña';
-    return;
   }
-  document.getElementById('reset-modal-bg').style.display = 'none';
-  await loadApp(await sb.auth.getSession().then(r => r.data.session));
 }
 
 function openPwdModal() {
@@ -1839,10 +1847,8 @@ async function savePwd() {
       msg.className = 'pwd-msg ok';
       if (isForced) {
         delete document.getElementById('pwd-modal-bg').dataset.forced;
-        setTimeout(async () => {
-          document.getElementById('pwd-modal-bg').classList.remove('open');
-          const { data: { user } } = await sb.auth.getUser();
-          await loadApp(user);
+        setTimeout(() => {
+          window.location.reload();
         }, 1500);
       } else {
         setTimeout(() => closePwdModal(), 1800);
