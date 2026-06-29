@@ -1069,6 +1069,76 @@ body.light .header-logo img.xul-logo { filter: invert(1); }
     </div>
     <div class="login-error" id="login-error"></div>
     <button class="btn-login" id="login-btn" onclick="doLogin()">Entrar</button>
+    <button type="button" onclick="openForgotModal()" style="margin-top:12px;background:none;border:none;color:var(--fg-muted);font-size:13px;cursor:pointer;width:100%;text-align:center;transition:color .15s;" onmouseover="this.style.color='var(--xul-purple-2)'" onmouseout="this.style.color='var(--fg-muted)'">¿Has olvidado tu contraseña?</button>
+  </div>
+</div>
+
+<!-- FORGOT PASSWORD MODAL -->
+<div id="forgot-modal-bg" onclick="closeForgotModal(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:1000;display:none;align-items:center;justify-content:center">
+  <div class="pwd-modal" onclick="event.stopPropagation()" style="max-width:400px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <div style="width:40px;height:40px;border-radius:10px;background:var(--xul-purple-1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--xul-purple-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <div>
+        <div style="font-size:16px;font-weight:700;letter-spacing:-.02em">Recuperar contraseña</div>
+        <div style="font-size:12px;color:var(--fg-muted);margin-top:1px">Te enviaremos un enlace a tu correo</div>
+      </div>
+    </div>
+
+    <div id="forgot-send-view">
+      <div class="login-field">
+        <label>Tu email</label>
+        <input type="email" id="forgot-email" placeholder="tu@xul.es" autocomplete="email" />
+      </div>
+      <div class="pwd-msg" id="forgot-msg"></div>
+      <div class="pwd-modal-actions" style="margin-top:16px">
+        <button class="btn-pwd-cancel" onclick="closeForgotModal()">Cancelar</button>
+        <button class="btn-pwd-save" id="forgot-send-btn" onclick="sendForgotEmail()">Enviar enlace</button>
+      </div>
+    </div>
+
+    <div id="forgot-done-view" style="display:none;text-align:center;padding:8px 0 16px">
+      <div style="width:56px;height:56px;border-radius:50%;background:rgba(34,197,94,.12);display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div style="font-size:15px;font-weight:700;color:var(--fg);margin-bottom:8px">Revisa tu correo</div>
+      <p style="font-size:13px;color:var(--fg-muted);line-height:1.6;margin:0 0 20px">Te hemos enviado un enlace para restablecer tu contraseña. Puede tardar unos minutos.</p>
+      <button class="btn-pwd-save" style="width:100%" onclick="closeForgotModal()">Entendido</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESET PASSWORD MODAL (se abre al volver del email de Supabase) -->
+<div id="reset-modal-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center">
+  <div class="pwd-modal" onclick="event.stopPropagation()" style="max-width:400px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <div style="width:40px;height:40px;border-radius:10px;background:var(--xul-purple-1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--xul-purple-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <div>
+        <div style="font-size:16px;font-weight:700;letter-spacing:-.02em">Nueva contraseña</div>
+        <div style="font-size:12px;color:var(--fg-muted);margin-top:1px">Elige una contraseña segura</div>
+      </div>
+    </div>
+    <div class="login-field">
+      <label>Nueva contraseña</label>
+      <input type="password" id="reset-pwd-new" placeholder="Mínimo 8 caracteres" />
+    </div>
+    <div class="login-field">
+      <label>Confirmar contraseña</label>
+      <input type="password" id="reset-pwd-confirm" placeholder="Repite la contraseña" />
+    </div>
+    <div class="pwd-msg" id="reset-msg"></div>
+    <div class="pwd-modal-actions" style="margin-top:16px">
+      <button class="btn-pwd-save" style="width:100%" id="reset-save-btn" onclick="saveResetPassword()">Guardar contraseña</button>
+    </div>
   </div>
 </div>
 
@@ -1629,6 +1699,72 @@ document.addEventListener('click', e => {
 /* ===================================================
    CHANGE PASSWORD
 =================================================== */
+/* ===================================================
+   FORGOT PASSWORD
+=================================================== */
+function openForgotModal() {
+  const bg = document.getElementById('forgot-modal-bg');
+  bg.style.display = 'flex';
+  document.getElementById('forgot-send-view').style.display = '';
+  document.getElementById('forgot-done-view').style.display = 'none';
+  document.getElementById('forgot-msg').textContent = '';
+  document.getElementById('forgot-msg').className = 'pwd-msg';
+  document.getElementById('forgot-send-btn').disabled = false;
+  document.getElementById('forgot-send-btn').textContent = 'Enviar enlace';
+  // Pre-rellenar con el email del input si hay algo
+  const emailInput = document.getElementById('login-email');
+  if (emailInput?.value) document.getElementById('forgot-email').value = emailInput.value;
+}
+
+function closeForgotModal(e) {
+  if (e && e.target !== document.getElementById('forgot-modal-bg')) return;
+  document.getElementById('forgot-modal-bg').style.display = 'none';
+}
+
+async function sendForgotEmail() {
+  const email  = document.getElementById('forgot-email').value.trim();
+  const msgEl  = document.getElementById('forgot-msg');
+  const btn    = document.getElementById('forgot-send-btn');
+  if (!email) { msgEl.textContent = 'Introduce tu email.'; msgEl.className = 'pwd-msg error'; return; }
+  btn.disabled = true;
+  btn.textContent = 'Enviando…';
+  msgEl.textContent = '';
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname
+  });
+  if (error) {
+    msgEl.textContent = 'No se pudo enviar el correo. Comprueba el email.';
+    msgEl.className = 'pwd-msg error';
+    btn.disabled = false;
+    btn.textContent = 'Enviar enlace';
+    return;
+  }
+  document.getElementById('forgot-send-view').style.display = 'none';
+  document.getElementById('forgot-done-view').style.display = '';
+}
+
+async function saveResetPassword() {
+  const newPwd     = document.getElementById('reset-pwd-new').value;
+  const confirmPwd = document.getElementById('reset-pwd-confirm').value;
+  const msgEl      = document.getElementById('reset-msg');
+  const btn        = document.getElementById('reset-save-btn');
+  msgEl.textContent = '';
+  if (newPwd.length < 8) { msgEl.textContent = 'La contraseña debe tener al menos 8 caracteres.'; msgEl.className = 'pwd-msg error'; return; }
+  if (newPwd !== confirmPwd) { msgEl.textContent = 'Las contraseñas no coinciden.'; msgEl.className = 'pwd-msg error'; return; }
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+  const { error } = await sb.auth.updateUser({ password: newPwd });
+  if (error) {
+    msgEl.textContent = 'Error al guardar. Inténtalo de nuevo.';
+    msgEl.className = 'pwd-msg error';
+    btn.disabled = false;
+    btn.textContent = 'Guardar contraseña';
+    return;
+  }
+  document.getElementById('reset-modal-bg').style.display = 'none';
+  await loadApp(await sb.auth.getSession().then(r => r.data.session));
+}
+
 function openPwdModal() {
   document.getElementById('pwd-new').value = '';
   document.getElementById('pwd-confirm').value = '';
@@ -1990,6 +2126,20 @@ function updateStats() {
   });
   document.getElementById('login-email').addEventListener('keydown', e => {
     if (e.key === 'Enter') document.getElementById('login-password').focus();
+  });
+
+  // Escuchar cambios de auth (incluye PASSWORD_RECOVERY desde el email de reset)
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      window.history.replaceState({}, '', window.location.pathname);
+      const bg = document.getElementById('reset-modal-bg');
+      bg.style.display = 'flex';
+      document.getElementById('reset-pwd-new').value = '';
+      document.getElementById('reset-pwd-confirm').value = '';
+      document.getElementById('reset-msg').textContent = '';
+      document.getElementById('reset-save-btn').disabled = false;
+      document.getElementById('reset-save-btn').textContent = 'Guardar contraseña';
+    }
   });
 
   // Check existing session
