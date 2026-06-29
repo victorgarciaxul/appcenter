@@ -1651,6 +1651,14 @@ async function loadApp(user) {
   }
 
   localStorage.setItem('xul_appcenter_auth', '1');
+
+  // Si venía de una app (return_to), redirigir de vuelta con SSO
+  const returnTo = new URLSearchParams(window.location.search).get('return_to');
+  if (returnTo && user) {
+    window.location.replace(`${returnTo}?sso_email=${encodeURIComponent(user.email)}`);
+    return;
+  }
+
   document.getElementById('login-overlay').classList.add('hidden');
   document.getElementById('app-wrapper').classList.add('visible');
 
