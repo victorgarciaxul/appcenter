@@ -1627,6 +1627,7 @@ async function doLogin() {
 
 async function doLogout() {
   await sb.auth.signOut();
+  localStorage.removeItem('xul_appcenter_auth');
   allowedAppIds = null;
   document.getElementById('app-wrapper').classList.remove('visible');
   document.getElementById('login-overlay').classList.remove('hidden');
@@ -1649,6 +1650,7 @@ async function loadApp(user) {
     document.getElementById('header-user').style.display = 'flex';
   }
 
+  localStorage.setItem('xul_appcenter_auth', '1');
   document.getElementById('login-overlay').classList.add('hidden');
   document.getElementById('app-wrapper').classList.add('visible');
 
@@ -2195,6 +2197,12 @@ function updateStats() {
   const { data: { session } } = await sb.auth.getSession();
   if (session) {
     await loadApp(session.user);
+    // Si hay return_to (el usuario venía de una app), SSO-redirigir de vuelta
+    const returnTo = new URLSearchParams(window.location.search).get('return_to');
+    if (returnTo) {
+      const dest = `${returnTo}?sso_email=${encodeURIComponent(session.user.email)}`;
+      window.location.replace(dest);
+    }
   }
 })();
 </script>
