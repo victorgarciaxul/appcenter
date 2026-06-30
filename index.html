@@ -99,7 +99,7 @@ body::before {
   inset: 0;
   z-index: 0;
   background: url('app-bg.jpg') center center / cover no-repeat;
-  opacity: 0.07;
+  opacity: 0.15;
   pointer-events: none;
 }
 
@@ -1308,23 +1308,7 @@ body.light .header-logo img.xul-logo { filter: invert(1); }
       <div class="header-divider"></div>
       <span class="header-title">Appcenter</span>
       <div class="header-spacer"></div>
-      <div class="header-search">
-        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-        </svg>
-        <input type="text" id="search-input" placeholder="Buscar aplicación…" oninput="filterApps()" />
-      </div>
-      <button class="btn-theme" id="theme-btn" onclick="toggleTheme()" title="Cambiar tema">
-        <svg id="theme-icon-dark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-        </svg>
-        <svg id="theme-icon-light" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-        </svg>
-      </button>
+      <input type="text" id="search-input" style="display:none" oninput="filterApps()" />
       <div class="header-divider"></div>
       <div class="header-user" id="header-user" style="display:none">
         <button class="user-avatar-btn" id="avatar-btn" onclick="toggleDropdown()" aria-label="Menú de usuario">
