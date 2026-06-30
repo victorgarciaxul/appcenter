@@ -1754,33 +1754,54 @@ async function sendForgotEmail() {
 }
 
 async function saveResetPassword() {
-  const newPwd     = document.getElementById('reset-pwd-new').value;
-  const confirmPwd = document.getElementById('reset-pwd-confirm').value;
-  const msgEl      = document.getElementById('reset-msg');
-  const btn        = document.getElementById('reset-save-btn');
+  const newPwd   = document.getElementById('reset-pwd-new').value;
+  const confirm  = document.getElementById('reset-pwd-confirm').value;
+  const msgEl    = document.getElementById('reset-msg');
+  const btn      = document.getElementById('reset-save-btn');
   msgEl.textContent = '';
   if (newPwd.length < 8) { msgEl.textContent = 'La contraseña debe tener al menos 8 caracteres.'; msgEl.className = 'pwd-msg error'; return; }
-  if (newPwd !== confirmPwd) { msgEl.textContent = 'Las contraseñas no coinciden.'; msgEl.className = 'pwd-msg error'; return; }
+  if (newPwd !== confirm) { msgEl.textContent = 'Las contraseñas no coinciden.'; msgEl.className = 'pwd-msg error'; return; }
+
   btn.disabled = true;
   btn.textContent = 'Guardando…';
-  try {
-    const t = (ms) => new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms));
-    const { error } = await Promise.race([sb.auth.updateUser({ password: newPwd }), t(12000)]);
-    if (error) {
-      msgEl.textContent = 'Error al guardar. Inténtalo de nuevo.';
-      msgEl.className = 'pwd-msg error';
-      btn.disabled = false;
-      btn.textContent = 'Guardar contraseña';
-      return;
-    }
-    document.getElementById('reset-modal-bg').style.display = 'none';
-    window.location.reload();
-  } catch (e) {
-    msgEl.textContent = e.message === 'timeout' ? 'La conexión tardó demasiado. Inténtalo de nuevo.' : 'Error inesperado. Inténtalo de nuevo.';
-    msgEl.className = 'pwd-msg error';
+
+  let done = false;
+  const guard = setTimeout(() => {
+    if (done) return;
+    done = true;
     btn.disabled = false;
     btn.textContent = 'Guardar contraseña';
+    msgEl.textContent = 'Sin respuesta del servidor. Inténtalo de nuevo.';
+    msgEl.className = 'pwd-msg error';
+  }, 6000);
+
+  let result;
+  try {
+    result = await sb.auth.updateUser({ password: newPwd });
+  } catch (e) {
+    clearTimeout(guard);
+    if (done) return;
+    done = true;
+    btn.disabled = false;
+    btn.textContent = 'Guardar contraseña';
+    msgEl.textContent = 'Error de conexión. Inténtalo de nuevo.';
+    msgEl.className = 'pwd-msg error';
+    return;
   }
+
+  clearTimeout(guard);
+  if (done) return;
+  done = true;
+
+  if (result.error) {
+    btn.disabled = false;
+    btn.textContent = 'Guardar contraseña';
+    msgEl.textContent = 'Error al guardar. Inténtalo de nuevo.';
+    msgEl.className = 'pwd-msg error';
+    return;
+  }
+  document.getElementById('reset-modal-bg').style.display = 'none';
+  window.location.reload();
 }
 
 function openPwdModal() {
@@ -1813,64 +1834,65 @@ function closePwdModal(e) {
 }
 
 async function savePwd() {
-  const newPwd     = document.getElementById('pwd-new').value;
-  const confirmVal = document.getElementById('pwd-confirm').value;
-  const msg        = document.getElementById('pwd-msg');
-  const btn        = document.getElementById('pwd-save-btn');
-  const isForced   = document.getElementById('pwd-modal-bg').dataset.forced === 'true';
+  const newPwd   = document.getElementById('pwd-new').value;
+  const confirm  = document.getElementById('pwd-confirm').value;
+  const msg      = document.getElementById('pwd-msg');
+  const btn      = document.getElementById('pwd-save-btn');
+  const isForced = document.getElementById('pwd-modal-bg').dataset.forced === 'true';
 
-  if (newPwd.length < 8) {
-    msg.textContent = 'La contraseña debe tener al menos 8 caracteres';
-    msg.className = 'pwd-msg error';
-    return;
-  }
-  if (newPwd !== confirmVal) {
-    msg.textContent = 'Las contraseñas no coinciden';
-    msg.className = 'pwd-msg error';
-    return;
-  }
+  if (newPwd.length < 8) { msg.textContent = 'La contraseña debe tener al menos 8 caracteres'; msg.className = 'pwd-msg error'; return; }
+  if (newPwd !== confirm) { msg.textContent = 'Las contraseñas no coinciden'; msg.className = 'pwd-msg error'; return; }
 
   btn.disabled = true;
   btn.textContent = 'Guardando…';
   msg.textContent = '';
   msg.className = 'pwd-msg';
 
-  try {
-    const updatePayload = isForced
-      ? { password: newPwd, data: { must_change_password: false } }
-      : { password: newPwd };
-
-    // Timeout de 12s para que no se quede pillado
-    const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('timeout')), 12000)
-    );
-    const update = sb.auth.updateUser(updatePayload);
-    const { error } = await Promise.race([update, timeout]);
-
-    if (error) {
-      msg.textContent = error.message || 'Error al cambiar la contraseña';
-      msg.className = 'pwd-msg error';
-    } else {
-      msg.textContent = isForced ? '¡Contraseña guardada! Entrando…' : 'Contraseña actualizada correctamente';
-      msg.className = 'pwd-msg ok';
-      if (isForced) {
-        delete document.getElementById('pwd-modal-bg').dataset.forced;
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
-      } else {
-        setTimeout(() => closePwdModal(), 1800);
-      }
-    }
-  } catch (e) {
-    msg.textContent = e.message === 'timeout'
-      ? 'La conexión tardó demasiado. Inténtalo de nuevo.'
-      : 'Error inesperado. Inténtalo de nuevo.';
+  let done = false;
+  const guard = setTimeout(() => {
+    if (done) return;
+    done = true;
+    btn.disabled = false;
+    btn.textContent = 'Guardar';
+    msg.textContent = 'Sin respuesta del servidor. Inténtalo de nuevo.';
     msg.className = 'pwd-msg error';
+  }, 6000);
+
+  let result;
+  try {
+    result = await sb.auth.updateUser(
+      isForced ? { password: newPwd, data: { must_change_password: false } } : { password: newPwd }
+    );
+  } catch (e) {
+    clearTimeout(guard);
+    if (done) return;
+    done = true;
+    btn.disabled = false;
+    btn.textContent = 'Guardar';
+    msg.textContent = 'Error de conexión. Inténtalo de nuevo.';
+    msg.className = 'pwd-msg error';
+    return;
   }
 
+  clearTimeout(guard);
+  if (done) return;
+  done = true;
   btn.disabled = false;
   btn.textContent = 'Guardar';
+
+  if (result.error) {
+    msg.textContent = result.error.message || 'Error al cambiar la contraseña';
+    msg.className = 'pwd-msg error';
+  } else {
+    msg.textContent = isForced ? '¡Contraseña guardada! Entrando…' : 'Contraseña actualizada correctamente';
+    msg.className = 'pwd-msg ok';
+    if (isForced) {
+      delete document.getElementById('pwd-modal-bg').dataset.forced;
+      setTimeout(() => window.location.reload(), 1500);
+    } else {
+      setTimeout(() => closePwdModal(), 1800);
+    }
+  }
 }
 
 /* ===================================================
@@ -1886,21 +1908,39 @@ async function openMfaModal() {
   document.getElementById('mfa-step-status').textContent   = 'Comprobando…';
   document.getElementById('mfa-modal-bg').classList.add('open');
 
+  let done = false;
+  const guard = setTimeout(() => {
+    if (done) return;
+    done = true;
+    document.getElementById('mfa-step-status').textContent = 'Sin respuesta del servidor. Cierra y vuelve a intentarlo.';
+  }, 6000);
+
+  let result;
   try {
-    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000));
-    const { data } = await Promise.race([sb.auth.mfa.listFactors(), timeout]);
-    const active   = data?.totp?.find(f => f.status === 'verified');
-    document.getElementById('mfa-step-status').textContent = '';
-    if (active) {
-      _mfaFactorId = active.id;
-      document.getElementById('mfa-on-view').style.display = 'block';
-    } else {
-      document.getElementById('mfa-off-view').style.display = 'block';
-    }
+    result = await sb.auth.mfa.listFactors();
   } catch (e) {
-    document.getElementById('mfa-step-status').textContent = e.message === 'timeout'
-      ? 'La conexión tardó demasiado. Cierra y vuelve a intentarlo.'
-      : 'Error al conectar. Inténtalo de nuevo.';
+    clearTimeout(guard);
+    if (done) return;
+    done = true;
+    document.getElementById('mfa-step-status').textContent = 'Error de conexión. Cierra y vuelve a intentarlo.';
+    return;
+  }
+
+  clearTimeout(guard);
+  if (done) return;
+  done = true;
+
+  if (result.error) {
+    document.getElementById('mfa-step-status').textContent = 'Error al conectar. Inténtalo de nuevo.';
+    return;
+  }
+  const active = result.data?.totp?.find(f => f.status === 'verified');
+  document.getElementById('mfa-step-status').textContent = '';
+  if (active) {
+    _mfaFactorId = active.id;
+    document.getElementById('mfa-on-view').style.display = 'block';
+  } else {
+    document.getElementById('mfa-off-view').style.display = 'block';
   }
 }
 
@@ -1913,38 +1953,48 @@ function closeMfaModal(e) {
 }
 
 async function startMfaEnroll() {
-  document.getElementById('mfa-off-view').style.display    = 'none';
-  document.getElementById('mfa-step-status').textContent   = 'Generando QR…';
+  document.getElementById('mfa-off-view').style.display  = 'none';
+  document.getElementById('mfa-step-status').textContent = 'Generando QR…';
+
+  let done = false;
+  const guard = setTimeout(() => {
+    if (done) return;
+    done = true;
+    document.getElementById('mfa-step-status').textContent = 'Sin respuesta del servidor. Cierra y vuelve a intentarlo.';
+    document.getElementById('mfa-off-view').style.display = 'block';
+  }, 8000);
 
   try {
-    const tout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
+    const userResult = await sb.auth.getUser();
+    if (done) return;
+    const userEmail = userResult.data?.user?.email ?? '';
 
-    const currentUser = (await Promise.race([sb.auth.getUser(), tout(8000)])).data?.user;
-    const userEmail   = currentUser?.email ?? '';
+    const enrollResult = await sb.auth.mfa.enroll({
+      factorType: 'totp', issuer: 'AppCenter XUL', friendlyName: userEmail,
+    });
+    if (done) return;
 
-    const enrollResult = await Promise.race([
-      sb.auth.mfa.enroll({ factorType: 'totp', issuer: 'AppCenter XUL', friendlyName: userEmail }),
-      tout(10000),
-    ]);
+    clearTimeout(guard);
+    done = true;
 
     if (enrollResult.error) {
       document.getElementById('mfa-step-status').textContent = enrollResult.error.message;
       document.getElementById('mfa-off-view').style.display = 'block';
       return;
     }
-
     const data = enrollResult.data;
     _mfaFactorId = data.id;
-    document.getElementById('mfa-qr-img').src        = data.totp.qr_code;
-    document.getElementById('mfa-secret').textContent = data.totp.secret;
-    document.getElementById('mfa-totp-code').value    = '';
-    document.getElementById('mfa-msg').textContent    = '';
+    document.getElementById('mfa-qr-img').src         = data.totp.qr_code;
+    document.getElementById('mfa-secret').textContent  = data.totp.secret;
+    document.getElementById('mfa-totp-code').value     = '';
+    document.getElementById('mfa-msg').textContent     = '';
     document.getElementById('mfa-step-status').textContent = '';
     document.getElementById('mfa-enroll-view').style.display = 'block';
   } catch (e) {
-    document.getElementById('mfa-step-status').textContent = e.message === 'timeout'
-      ? 'La conexión tardó demasiado. Cierra y vuelve a intentarlo.'
-      : 'Error al generar el QR. Inténtalo de nuevo.';
+    clearTimeout(guard);
+    if (done) return;
+    done = true;
+    document.getElementById('mfa-step-status').textContent = 'Error al generar el QR. Inténtalo de nuevo.';
     document.getElementById('mfa-off-view').style.display = 'block';
   }
 }
@@ -1956,17 +2006,34 @@ async function verifyMfaEnroll() {
 
   if (code.length !== 6) { msg.textContent = 'El código tiene 6 dígitos'; msg.className = 'pwd-msg error'; return; }
 
-  btn.disabled = true; btn.textContent = 'Verificando…';
+  btn.disabled = true;
+  btn.textContent = 'Verificando…';
+  msg.textContent = '';
+  msg.className = 'pwd-msg';
+
+  let done = false;
+  const guard = setTimeout(() => {
+    if (done) return;
+    done = true;
+    btn.disabled = false;
+    btn.textContent = 'Verificar y activar';
+    msg.textContent = 'Sin respuesta del servidor. Inténtalo de nuevo.';
+    msg.className = 'pwd-msg error';
+  }, 8000);
 
   try {
-    const t = (ms) => new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms));
-    const { data: challenge, error: ce } = await Promise.race([
-      sb.auth.mfa.challenge({ factorId: _mfaFactorId }), t(8000)
-    ]);
+    const { data: challenge, error: ce } = await sb.auth.mfa.challenge({ factorId: _mfaFactorId });
+    if (done) return;
     if (ce) throw ce;
-    const { error } = await Promise.race([
-      sb.auth.mfa.verify({ factorId: _mfaFactorId, challengeId: challenge.id, code }), t(8000)
-    ]);
+
+    const { error } = await sb.auth.mfa.verify({ factorId: _mfaFactorId, challengeId: challenge.id, code });
+    if (done) return;
+
+    clearTimeout(guard);
+    done = true;
+    btn.disabled = false;
+    btn.textContent = 'Verificar y activar';
+
     if (error) {
       msg.textContent = 'Código incorrecto. Inténtalo de nuevo.';
       msg.className = 'pwd-msg error';
@@ -1976,23 +2043,39 @@ async function verifyMfaEnroll() {
       setTimeout(() => closeMfaModal(), 1800);
     }
   } catch (e) {
-    msg.textContent = e.message === 'timeout' ? 'Tiempo agotado. Inténtalo de nuevo.' : 'Error. Inténtalo de nuevo.';
+    clearTimeout(guard);
+    if (done) return;
+    done = true;
+    btn.disabled = false;
+    btn.textContent = 'Verificar y activar';
+    msg.textContent = 'Error de conexión. Inténtalo de nuevo.';
     msg.className = 'pwd-msg error';
   }
-
-  btn.disabled = false; btn.textContent = 'Verificar y activar';
 }
 
 async function disableMfa() {
   if (!confirm('¿Seguro que quieres desactivar el 2FA?')) return;
+
+  let done = false;
+  const guard = setTimeout(() => {
+    if (done) return;
+    done = true;
+    document.getElementById('mfa-step-status').textContent = 'Sin respuesta. Cierra y vuelve a intentarlo.';
+  }, 6000);
+
   try {
-    const t = (ms) => new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms));
-    const { error } = await Promise.race([sb.auth.mfa.unenroll({ factorId: _mfaFactorId }), t(8000)]);
+    const { error } = await sb.auth.mfa.unenroll({ factorId: _mfaFactorId });
+    clearTimeout(guard);
+    if (done) return;
+    done = true;
     if (error) { alert(error.message); return; }
     alert('2FA desactivado.');
     closeMfaModal();
   } catch (e) {
-    alert(e.message === 'timeout' ? 'Tiempo agotado. Inténtalo de nuevo.' : 'Error al desactivar.');
+    clearTimeout(guard);
+    if (done) return;
+    done = true;
+    alert('Error al desactivar. Inténtalo de nuevo.');
   }
 }
 
@@ -2012,27 +2095,45 @@ async function submitMfaLogin() {
   const btn = document.querySelector('#mfa-login-bg button[onclick="submitMfaLogin()"]');
   if (btn) { btn.disabled = true; btn.textContent = 'Verificando…'; }
 
+  let done = false;
+  const guard = setTimeout(() => {
+    if (done) return;
+    done = true;
+    msg.textContent = 'Sin respuesta del servidor. Inténtalo de nuevo.';
+    msg.className = 'pwd-msg error';
+    if (btn) { btn.disabled = false; btn.textContent = 'Verificar'; }
+  }, 8000);
+
   try {
-    const t = (ms) => new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms));
-    const { data: challenge, error: ce } = await Promise.race([
-      sb.auth.mfa.challenge({ factorId: window._mfaLoginFactorId }), t(8000)
-    ]);
+    const { data: challenge, error: ce } = await sb.auth.mfa.challenge({ factorId: window._mfaLoginFactorId });
+    if (done) return;
     if (ce) throw ce;
-    const { error } = await Promise.race([
-      sb.auth.mfa.verify({ factorId: window._mfaLoginFactorId, challengeId: challenge.id, code }), t(8000)
-    ]);
+
+    const { error } = await sb.auth.mfa.verify({ factorId: window._mfaLoginFactorId, challengeId: challenge.id, code });
+    if (done) return;
+
     if (error) {
+      clearTimeout(guard);
+      done = true;
       msg.textContent = 'Código incorrecto';
       msg.className = 'pwd-msg error';
       if (btn) { btn.disabled = false; btn.textContent = 'Verificar'; }
       return;
     }
+
     document.getElementById('mfa-login-bg').style.display = 'none';
-    const { data: { user } } = await Promise.race([sb.auth.getUser(), t(8000)]);
+    const { data: { user } } = await sb.auth.getUser();
+    if (done) return;
+
+    clearTimeout(guard);
+    done = true;
     if (user?.user_metadata?.must_change_password) { openForcedPwdModal(); return; }
     await loadApp(user);
   } catch (e) {
-    msg.textContent = e.message === 'timeout' ? 'Tiempo agotado. Inténtalo de nuevo.' : 'Error. Inténtalo de nuevo.';
+    clearTimeout(guard);
+    if (done) return;
+    done = true;
+    msg.textContent = 'Error de conexión. Inténtalo de nuevo.';
     msg.className = 'pwd-msg error';
     if (btn) { btn.disabled = false; btn.textContent = 'Verificar'; }
   }
