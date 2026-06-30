@@ -1830,18 +1830,16 @@ async function saveResetPassword() {
   if (newPwd !== conf)   { msgEl.textContent = 'Las contraseñas no coinciden.'; msgEl.className = 'pwd-msg error'; return; }
 
   btn.disabled = true;
-  const stopTimer = btnCountdown(btn, 'Guardando', 7);
+  btn.textContent = 'Guardando…';
   try {
-    const r = await sbFetch('/auth/v1/user', { method: 'PUT', body: JSON.stringify({ password: newPwd }) });
-    stopTimer();
-    if (!r.ok) throw new Error(r.data?.message || 'Error al guardar');
+    const { error } = await sb.auth.updateUser({ password: newPwd });
+    if (error) throw new Error(error.message);
     document.getElementById('reset-modal-bg').style.display = 'none';
     window.location.reload();
   } catch (e) {
-    stopTimer();
     btn.disabled = false;
     btn.textContent = 'Guardar contraseña';
-    msgEl.textContent = e.message === 'timeout' ? 'Sin respuesta (7s). Comprueba tu conexión.' : (e.message || 'Error. Inténtalo de nuevo.');
+    msgEl.textContent = e.message || 'Error. Inténtalo de nuevo.';
     msgEl.className = 'pwd-msg error';
   }
 }
