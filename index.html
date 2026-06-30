@@ -2266,14 +2266,21 @@ function updateStats() {
     if (e.key === 'Enter') document.getElementById('login-password').focus();
   });
 
-  // Detectar token de recuperación en la URL (detectSessionInUrl:false lo omite)
-  const hashParams = new URLSearchParams(window.location.hash.replace('#', ''));
-  const accessToken = hashParams.get('access_token');
-  const tokenType   = hashParams.get('type');
-  if (accessToken && tokenType === 'recovery') {
-    const refreshToken = hashParams.get('refresh_token') || '';
+  // Detectar reset por PKCE (?code=) o por hash legacy (#access_token&type=recovery)
+  const urlParams   = new URLSearchParams(window.location.search);
+  const hashParams  = new URLSearchParams(window.location.hash.replace('#', ''));
+  const pkceCode    = urlParams.get('code');
+  const hashToken   = hashParams.get('access_token');
+  const hashType    = hashParams.get('type');
+  const isRecovery  = pkceCode || (hashToken && hashType === 'recovery');
+
+  if (isRecovery) {
     window.history.replaceState({}, '', window.location.pathname);
-    await sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+    if (pkceCode) {
+      await sb.auth.exchangeCodeForSession(pkceCode);
+    } else {
+      await sb.auth.setSession({ access_token: hashToken, refresh_token: hashParams.get('refresh_token') || '' });
+    }
     const bg = document.getElementById('reset-modal-bg');
     bg.style.display = 'flex';
     document.getElementById('reset-pwd-new').value = '';
