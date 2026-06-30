@@ -98,23 +98,25 @@ body {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: var(--bg);
+  background: url('login-bg.jpg') center center / cover no-repeat;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 24px;
+  justify-content: flex-end;
+  padding: 24px 6vw 24px 24px;
 }
 
 #login-overlay.hidden { display: none; }
 
 .login-card {
   width: 100%;
-  max-width: 380px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  max-width: 400px;
+  background: rgba(15, 15, 20, 0.82);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: var(--radius-xl);
   padding: 40px 36px 36px;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 32px 64px rgba(0,0,0,0.5);
 }
 
 .login-logo {
