@@ -1926,14 +1926,20 @@ async function openMfaModal() {
   document.getElementById('mfa-off-view').style.display    = 'none';
   document.getElementById('mfa-enroll-view').style.display = 'none';
   document.getElementById('mfa-on-view').style.display     = 'none';
-  document.getElementById('mfa-step-status').textContent   = 'Comprobando… ';
+  document.getElementById('mfa-step-status').textContent   = 'Comprobando…';
   document.getElementById('mfa-modal-bg').classList.add('open');
 
+  let done = false;
+  const guard = setTimeout(() => {
+    if (done) return; done = true;
+    document.getElementById('mfa-step-status').textContent = 'Sin respuesta (7s). Cierra y vuelve a intentarlo.';
+  }, 7000);
+
   try {
-    const r = await sbFetch('/auth/v1/factors');
-    if (!r.ok) throw new Error('Error al conectar');
-    const factors = Array.isArray(r.data) ? r.data : [];
-    const active  = factors.find(f => f.factor_type === 'totp' && f.status === 'verified');
+    const { data, error } = await sb.auth.mfa.listFactors();
+    clearTimeout(guard); if (done) return; done = true;
+    if (error) throw error;
+    const active = data?.totp?.find(f => f.status === 'verified');
     document.getElementById('mfa-step-status').textContent = '';
     if (active) {
       _mfaFactorId = active.id;
@@ -1942,9 +1948,8 @@ async function openMfaModal() {
       document.getElementById('mfa-off-view').style.display = 'block';
     }
   } catch (e) {
-    document.getElementById('mfa-step-status').textContent = e.message === 'timeout'
-      ? 'Sin respuesta (7s). Cierra y vuelve a intentarlo.'
-      : 'Error al conectar. Cierra y vuelve a intentarlo.';
+    clearTimeout(guard); if (done) return; done = true;
+    document.getElementById('mfa-step-status').textContent = e.message || 'Error al conectar. Cierra y vuelve a intentarlo.';
   }
 }
 
@@ -2070,39 +2075,41 @@ async function submitMfaLogin() {
   if (!/^\d{6}$/.test(code)) { msg.textContent = 'Introduce los 6 dígitos'; msg.className = 'pwd-msg error'; return; }
 
   const btn = document.querySelector('#mfa-login-bg button[onclick="submitMfaLogin()"]');
-  msg.textContent = '';
-  msg.className = 'pwd-msg';
+  msg.textContent = ''; msg.className = 'pwd-msg';
   const stopTimer = btn ? btnCountdown(btn, 'Verificando', 7) : () => {};
   if (btn) btn.disabled = true;
 
+  let done = false;
+  const guard = setTimeout(() => {
+    if (done) return; done = true;
+    stopTimer();
+    msg.textContent = 'Sin respuesta (7s). Inténtalo de nuevo.'; msg.className = 'pwd-msg error';
+    if (btn) { btn.disabled = false; btn.textContent = 'Verificar'; }
+  }, 7000);
+
   try {
-    const rc = await sbFetch(`/auth/v1/factors/${window._mfaLoginFactorId}/challenge`, { method: 'POST', body: '{}' });
-    if (!rc.ok) throw new Error(rc.data?.message || 'Error al iniciar verificación');
+    const { data: challenge, error: ce } = await sb.auth.mfa.challenge({ factorId: window._mfaLoginFactorId });
+    if (done) return;
+    if (ce) throw ce;
 
-    const rv = await sbFetch(`/auth/v1/factors/${window._mfaLoginFactorId}/verify`, {
-      method: 'POST',
-      body: JSON.stringify({ challenge_id: rc.data.id, code }),
-    });
-
+    const { data, error } = await sb.auth.mfa.verify({ factorId: window._mfaLoginFactorId, challengeId: challenge.id, code });
+    clearTimeout(guard); if (done) return; done = true;
     stopTimer();
 
-    if (!rv.ok) {
-      msg.textContent = 'Código incorrecto';
-      msg.className = 'pwd-msg error';
+    if (error) {
+      msg.textContent = 'Código incorrecto'; msg.className = 'pwd-msg error';
       if (btn) { btn.disabled = false; btn.textContent = 'Verificar'; }
       return;
     }
 
-    // Guardar nueva sesión MFA en localStorage y cargar app con el usuario del response
-    updateStoredSession(rv.data);
     document.getElementById('mfa-login-bg').style.display = 'none';
-    const user = rv.data.user;
+    const { data: { user } } = await sb.auth.getUser();
     if (user?.user_metadata?.must_change_password) { openForcedPwdModal(); return; }
     await loadApp(user);
   } catch (e) {
+    clearTimeout(guard); if (done) return; done = true;
     stopTimer();
-    msg.textContent = e.message === 'timeout' ? 'Sin respuesta (7s). Inténtalo de nuevo.' : (e.message || 'Error. Inténtalo de nuevo.');
-    msg.className = 'pwd-msg error';
+    msg.textContent = e.message || 'Error. Inténtalo de nuevo.'; msg.className = 'pwd-msg error';
     if (btn) { btn.disabled = false; btn.textContent = 'Verificar'; }
   }
 }
