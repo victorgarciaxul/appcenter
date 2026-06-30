@@ -2266,7 +2266,25 @@ function updateStats() {
     if (e.key === 'Enter') document.getElementById('login-password').focus();
   });
 
-  // Escuchar cambios de auth (incluye PASSWORD_RECOVERY desde el email de reset)
+  // Detectar token de recuperación en la URL (detectSessionInUrl:false lo omite)
+  const hashParams = new URLSearchParams(window.location.hash.replace('#', ''));
+  const accessToken = hashParams.get('access_token');
+  const tokenType   = hashParams.get('type');
+  if (accessToken && tokenType === 'recovery') {
+    const refreshToken = hashParams.get('refresh_token') || '';
+    window.history.replaceState({}, '', window.location.pathname);
+    await sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+    const bg = document.getElementById('reset-modal-bg');
+    bg.style.display = 'flex';
+    document.getElementById('reset-pwd-new').value = '';
+    document.getElementById('reset-pwd-confirm').value = '';
+    document.getElementById('reset-msg').textContent = '';
+    document.getElementById('reset-save-btn').disabled = false;
+    document.getElementById('reset-save-btn').textContent = 'Guardar contraseña';
+    return;
+  }
+
+  // Escuchar cambios de auth (por si detectSessionInUrl detecta algo)
   sb.auth.onAuthStateChange(async (event, session) => {
     if (event === 'PASSWORD_RECOVERY') {
       window.history.replaceState({}, '', window.location.pathname);
