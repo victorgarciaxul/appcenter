@@ -1810,7 +1810,7 @@ async function sendForgotEmail() {
     redirectTo: window.location.origin + window.location.pathname
   });
   if (error) {
-    msgEl.textContent = 'No se pudo enviar el correo. Comprueba el email.';
+    msgEl.textContent = error.message || 'No se pudo enviar el correo.';
     msgEl.className = 'pwd-msg error';
     btn.disabled = false;
     btn.textContent = 'Enviar enlace';
