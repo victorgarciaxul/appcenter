@@ -1422,7 +1422,20 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
   auth: { autoRefreshToken: false, detectSessionInUrl: false },
 });
 
-const SB_SESSION_KEY = 'sb-qwlebsymypgauydkqxem-auth-token';
+const SB_SESSION_KEY    = 'sb-qwlebsymypgauydkqxem-auth-token';
+const REMEMBER_KEY      = 'xul_remember_session';
+
+function saveRememberSession(session) {
+  if (!session?.refresh_token) return;
+  localStorage.setItem(REMEMBER_KEY, JSON.stringify({
+    access_token:  session.access_token,
+    refresh_token: session.refresh_token,
+  }));
+}
+
+function clearRememberSession() {
+  localStorage.removeItem(REMEMBER_KEY);
+}
 
 function getSbAccessToken() {
   try {
@@ -1670,14 +1683,17 @@ async function doLogin() {
   // Comprobar si el usuario tiene 2FA activo (AAL2 requerido)
   const { data: aalData } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
   if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel !== 'aal2') {
-    // Guardar factorId para verificar después
     const { data: factorsData } = await sb.auth.mfa.listFactors();
     window._mfaLoginFactorId = factorsData?.totp?.[0]?.id;
+    window._mfaRemember = remember;
     showMfaLoginModal();
     btn.disabled = false;
     btn.textContent = 'Entrar';
     return;
   }
+
+  // Sin 2FA: guardar sesión completa si "recordar" está activo
+  if (remember) saveRememberSession(data.session);
 
   // Comprobar si debe cambiar contraseña en primer acceso
   if (data.user?.user_metadata?.must_change_password) {
@@ -1693,6 +1709,7 @@ async function doLogin() {
 async function doLogout() {
   await sb.auth.signOut();
   localStorage.removeItem('xul_appcenter_auth');
+  clearRememberSession();
   allowedAppIds = null;
   document.getElementById('app-wrapper').classList.remove('visible');
   document.getElementById('login-overlay').classList.remove('hidden');
@@ -2099,6 +2116,10 @@ async function submitMfaLogin() {
     }
 
     document.getElementById('mfa-login-bg').style.display = 'none';
+    if (window._mfaRemember) {
+      const { data: { session: mfaSession } } = await sb.auth.getSession();
+      saveRememberSession(mfaSession);
+    }
     const { data: { user } } = await sb.auth.getUser();
     if (user?.user_metadata?.must_change_password) { openForcedPwdModal(); return; }
     await loadApp(user);
@@ -2303,6 +2324,15 @@ function updateStats() {
       document.getElementById('reset-save-btn').textContent = 'Guardar contraseña';
     }
   });
+
+  // Restaurar sesión guardada si "Recordar mi sesión" estaba activo
+  const storedSession = localStorage.getItem(REMEMBER_KEY);
+  if (storedSession) {
+    try {
+      const { access_token, refresh_token } = JSON.parse(storedSession);
+      if (refresh_token) await sb.auth.setSession({ access_token, refresh_token });
+    } catch {}
+  }
 
   // Check existing session
   const { data: { session } } = await sb.auth.getSession();
