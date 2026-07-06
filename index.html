@@ -1416,10 +1416,8 @@ const LOGIN_ACTIVE = true;
 =================================================== */
 const SUPABASE_URL  = 'https://qwlebsymypgauydkqxem.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3bGVic3lteXBnYXV5ZGtxeGVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1Njk4ODUsImV4cCI6MjA5NjE0NTg4NX0.tidfgCi6czlYBOAtuLD20Ouxomk_jeMG2FhsjuGmVzo';
-// autoRefreshToken: false elimina el timer de fondo que retiene el Web Lock
-// y bloquea indefinidamente cualquier llamada posterior al SDK
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-  auth: { autoRefreshToken: false, detectSessionInUrl: false },
+  auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: false },
 });
 
 const SB_SESSION_KEY    = 'sb-qwlebsymypgauydkqxem-auth-token';
