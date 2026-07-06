@@ -2329,16 +2329,14 @@ function updateStats() {
   const storedSession = localStorage.getItem(REMEMBER_KEY);
   if (storedSession) {
     try {
-      const { access_token, refresh_token } = JSON.parse(storedSession);
+      const { refresh_token } = JSON.parse(storedSession);
       if (refresh_token) {
-        const { data: refreshed, error: refreshErr } = await sb.auth.setSession({ access_token, refresh_token });
+        const { data: refreshed, error: refreshErr } = await sb.auth.refreshSession({ refresh_token });
         if (!refreshErr && refreshed?.session) {
-          // Actualizar el token guardado con el nuevo
           saveRememberSession(refreshed.session);
           await loadApp(refreshed.session.user);
           return;
         } else {
-          // Token caducado o inválido — borrar y pedir login
           clearRememberSession();
         }
       }
