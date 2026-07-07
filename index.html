@@ -1845,6 +1845,20 @@ async function saveResetPassword() {
   btn.disabled = true;
   btn.textContent = 'Guardando…';
   try {
+    // Canjeamos el token de recuperación ahora, justo antes de guardar (ver comentario más arriba).
+    const pending = window._pendingRecovery;
+    if (pending) {
+      let authErr = null;
+      if (pending.type === 'token_hash') {
+        ({ error: authErr } = await sb.auth.verifyOtp({ type: 'recovery', token_hash: pending.token_hash }));
+      } else if (pending.type === 'pkce') {
+        ({ error: authErr } = await sb.auth.exchangeCodeForSession(pending.code));
+      } else {
+        ({ error: authErr } = await sb.auth.setSession({ access_token: pending.access_token, refresh_token: pending.refresh_token }));
+      }
+      if (authErr) throw new Error('El enlace ha caducado o ya fue usado. Cierra esta ventana y solicita uno nuevo desde "¿Has olvidado tu contraseña?".');
+      window._pendingRecovery = null;
+    }
     const { error } = await sb.auth.updateUser({ password: newPwd });
     if (error) throw new Error(error.message);
     document.getElementById('reset-modal-bg').style.display = 'none';
@@ -2315,18 +2329,18 @@ function updateStats() {
 
   if (isRecovery) {
     window.history.replaceState({}, '', window.location.pathname);
-    let authErr = null;
+    // Importante: NO consumimos el token aquí. Escáneres de correo (Outlook Safe Links, etc.)
+    // ejecutan el JS de la página al abrir el enlace, y si verificáramos el token en la carga
+    // lo gastarían antes de que el usuario haga clic de verdad. En su lugar guardamos el token
+    // pendiente y solo lo canjeamos cuando el usuario pulsa "Guardar contraseña".
     if (tokenHash) {
-      const { error } = await sb.auth.verifyOtp({ type: 'recovery', token_hash: tokenHash });
-      authErr = error;
+      window._pendingRecovery = { type: 'token_hash', token_hash: tokenHash };
     } else if (pkceCode) {
-      const { error } = await sb.auth.exchangeCodeForSession(pkceCode);
-      authErr = error;
+      window._pendingRecovery = { type: 'pkce', code: pkceCode };
     } else {
-      const { error } = await sb.auth.setSession({ access_token: hashToken, refresh_token: hashParams.get('refresh_token') || '' });
-      authErr = error;
+      window._pendingRecovery = { type: 'hash', access_token: hashToken, refresh_token: hashParams.get('refresh_token') || '' };
     }
-    openResetModal(authErr ? 'El enlace no es válido o ha caducado. Solicita uno nuevo desde "¿Has olvidado tu contraseña?".' : '');
+    openResetModal('');
     return;
   }
 
