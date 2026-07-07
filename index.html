@@ -1149,6 +1149,10 @@ body.light .header-logo img.xul-logo { filter: invert(1); }
       <label>Confirmar contraseña</label>
       <input type="password" id="reset-pwd-confirm" placeholder="Repite la contraseña" />
     </div>
+    <div class="login-field" id="reset-2fa-field" style="display:none">
+      <label>Código de verificación (2FA)</label>
+      <input type="text" id="reset-2fa-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6 dígitos de tu app de autenticación" />
+    </div>
     <div class="pwd-msg" id="reset-msg"></div>
     <div class="pwd-modal-actions" style="margin-top:16px">
       <button class="btn-pwd-save" style="width:100%" id="reset-save-btn" onclick="saveResetPassword()">Guardar contraseña</button>
@@ -1859,6 +1863,35 @@ async function saveResetPassword() {
       if (authErr) throw new Error('El enlace ha caducado o ya fue usado. Cierra esta ventana y solicita uno nuevo desde "¿Has olvidado tu contraseña?".');
       window._pendingRecovery = null;
     }
+
+    // Si el usuario tiene 2FA, la sesión de recovery es AAL1 y no permite cambiar la contraseña.
+    // Debemos elevar a AAL2 verificando el código TOTP antes de continuar.
+    const { data: aalData } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aalData && aalData.nextLevel === 'aal2' && aalData.nextLevel !== aalData.currentLevel) {
+      const codeField = document.getElementById('reset-2fa-field');
+      const codeInput = document.getElementById('reset-2fa-code');
+      // Primera pasada: mostrar el campo y pedir el código
+      if (codeField.style.display === 'none') {
+        codeField.style.display = '';
+        codeInput.focus();
+        msgEl.textContent = 'Tienes 2FA activado. Introduce el código de tu app de autenticación para continuar.';
+        msgEl.className = 'pwd-msg';
+        btn.disabled = false;
+        btn.textContent = 'Guardar contraseña';
+        return;
+      }
+      const code = (codeInput.value || '').trim();
+      if (!/^\d{6}$/.test(code)) throw new Error('Introduce los 6 dígitos de tu app de autenticación.');
+      const { data: factors, error: fErr } = await sb.auth.mfa.listFactors();
+      if (fErr) throw new Error(fErr.message);
+      const totp = factors?.totp?.[0];
+      if (!totp) throw new Error('No se encontró el factor 2FA. Contacta con soporte.');
+      const { data: chal, error: cErr } = await sb.auth.mfa.challenge({ factorId: totp.id });
+      if (cErr) throw new Error(cErr.message);
+      const { error: vErr } = await sb.auth.mfa.verify({ factorId: totp.id, challengeId: chal.id, code });
+      if (vErr) throw new Error('Código incorrecto. Vuelve a intentarlo.');
+    }
+
     const { error } = await sb.auth.updateUser({ password: newPwd });
     if (error) throw new Error(error.message);
     document.getElementById('reset-modal-bg').style.display = 'none';
@@ -2313,6 +2346,8 @@ function updateStats() {
     bg.style.display = 'flex';
     document.getElementById('reset-pwd-new').value = '';
     document.getElementById('reset-pwd-confirm').value = '';
+    const f2fa = document.getElementById('reset-2fa-field');
+    if (f2fa) { f2fa.style.display = 'none'; document.getElementById('reset-2fa-code').value = ''; }
     const msgEl = document.getElementById('reset-msg');
     msgEl.textContent = errMsg || '';
     msgEl.className = errMsg ? 'pwd-msg error' : 'pwd-msg';
