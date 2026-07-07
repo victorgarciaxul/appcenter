@@ -2284,28 +2284,49 @@ function updateStats() {
     if (e.key === 'Enter') document.getElementById('login-password').focus();
   });
 
-  // Detectar reset por PKCE (?code=) o por hash legacy (#access_token&type=recovery)
+  // Detectar reset: token_hash (recomendado), PKCE (?code=) o hash legacy (#access_token&type=recovery)
   const urlParams   = new URLSearchParams(window.location.search);
   const hashParams  = new URLSearchParams(window.location.hash.replace('#', ''));
+  const tokenHash   = urlParams.get('token_hash');
   const pkceCode    = urlParams.get('code');
   const hashToken   = hashParams.get('access_token');
   const hashType    = hashParams.get('type');
-  const isRecovery  = pkceCode || (hashToken && hashType === 'recovery');
+  const urlErrCode  = urlParams.get('error_code') || hashParams.get('error_code');
+  const isRecovery  = (tokenHash && urlParams.get('type') === 'recovery') || pkceCode || (hashToken && hashType === 'recovery');
 
-  if (isRecovery) {
-    window.history.replaceState({}, '', window.location.pathname);
-    if (pkceCode) {
-      await sb.auth.exchangeCodeForSession(pkceCode);
-    } else {
-      await sb.auth.setSession({ access_token: hashToken, refresh_token: hashParams.get('refresh_token') || '' });
-    }
+  function openResetModal(errMsg) {
     const bg = document.getElementById('reset-modal-bg');
     bg.style.display = 'flex';
     document.getElementById('reset-pwd-new').value = '';
     document.getElementById('reset-pwd-confirm').value = '';
-    document.getElementById('reset-msg').textContent = '';
-    document.getElementById('reset-save-btn').disabled = false;
+    const msgEl = document.getElementById('reset-msg');
+    msgEl.textContent = errMsg || '';
+    msgEl.className = errMsg ? 'pwd-msg error' : 'pwd-msg';
+    document.getElementById('reset-save-btn').disabled = !!errMsg;
     document.getElementById('reset-save-btn').textContent = 'Guardar contraseña';
+  }
+
+  // El enlace caducó o ya fue usado (los antivirus de correo consumen enlaces de un solo uso)
+  if (urlErrCode === 'otp_expired' || urlErrCode === 'access_denied') {
+    window.history.replaceState({}, '', window.location.pathname);
+    openResetModal('El enlace ha caducado o ya fue usado. Cierra esta ventana y solicita uno nuevo desde "¿Has olvidado tu contraseña?".');
+    return;
+  }
+
+  if (isRecovery) {
+    window.history.replaceState({}, '', window.location.pathname);
+    let authErr = null;
+    if (tokenHash) {
+      const { error } = await sb.auth.verifyOtp({ type: 'recovery', token_hash: tokenHash });
+      authErr = error;
+    } else if (pkceCode) {
+      const { error } = await sb.auth.exchangeCodeForSession(pkceCode);
+      authErr = error;
+    } else {
+      const { error } = await sb.auth.setSession({ access_token: hashToken, refresh_token: hashParams.get('refresh_token') || '' });
+      authErr = error;
+    }
+    openResetModal(authErr ? 'El enlace no es válido o ha caducado. Solicita uno nuevo desde "¿Has olvidado tu contraseña?".' : '');
     return;
   }
 
