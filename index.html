@@ -1756,7 +1756,32 @@ async function loadApp(user) {
 async function ssoLaunch(url) {
   const { data: { session } } = await sb.auth.getSession()
   const email = session?.user?.email
-  const dest  = email ? `${url}?sso_email=${encodeURIComponent(email)}` : url
+  let dest = email ? `${url}?sso_email=${encodeURIComponent(email)}` : url
+
+  // SSO firmado: pedir un token de un solo uso (60s) y añadirlo a la URL.
+  // Las apps antiguas lo ignoran; las nuevas lo verifican contra /functions/v1/sso/verify.
+  // Si falla o tarda (>2s), la app se abre igual que siempre — nunca bloquea al usuario.
+  if (session?.access_token) {
+    try {
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), 2000);
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/sso/sign`, {
+        method: 'POST',
+        signal: ac.signal,
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': SUPABASE_ANON,
+          'Content-Type': 'application/json',
+        },
+      });
+      clearTimeout(timer);
+      if (res.ok) {
+        const { sso_token } = await res.json();
+        if (sso_token) dest += `&sso_token=${encodeURIComponent(sso_token)}`;
+      }
+    } catch (_) { /* fallback silencioso: abrir sin token */ }
+  }
+
   window.open(dest, '_blank')
 }
 
