@@ -868,7 +868,7 @@ body.light .header-logo img.xul-logo { filter: invert(1); }
   padding: 16px 24px 20px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
   border-top: 1px solid var(--border);
 }
@@ -2247,10 +2247,10 @@ function renderCard(app) {
       <div class="card-banner">
         <div class="card-banner-bg ${app.grad}"></div>
         <div class="card-banner-noise"></div>
-        <div class="card-status-badge ${app.status}">
+        ${app.status === 'beta' ? `<div class="card-status-badge ${app.status}">
           <span class="badge-dot"></span>
           ${statusLabel(app.status)}
-        </div>
+        </div>` : ''}
         <div class="card-icon-wrap">${app.icon}</div>
       </div>
       <div class="card-body">
@@ -2261,7 +2261,6 @@ function renderCard(app) {
         </div>
       </div>
       <div class="card-footer">
-        <span class="card-meta">${app.meta}</span>
         <a href="${app.url}"
            class="btn-launch ${app.status === 'paused' ? 'disabled' : ''}"
            ${app.status !== 'paused' ? `target="_blank" ${app.sso ? `onclick="event.preventDefault(); ssoLaunch('${app.url}')"` : ''}` : ''}>
